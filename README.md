@@ -1,6 +1,6 @@
 # AESculap
 
-Implentation of the Advanced Encryption Standard (AES) algorithm.
+Implementation of the Advanced Encryption Standard (AES) algorithm.
 
 ## Sources
 - [Wikipedia](https://de.wikipedia.org/wiki/Advanced_Encryption_Standard)
