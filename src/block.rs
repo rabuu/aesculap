@@ -4,32 +4,43 @@ use crate::util;
 
 #[derive(Debug)]
 pub struct Block {
-    bytes: [[u8; 4]; 4],
+    state: [[u8; 4]; 4],
 }
 
 impl Block {
-    pub fn new(bytes: [[u8; 4]; 4]) -> Self {
-        Self { bytes }
+    pub fn new(state: [[u8; 4]; 4]) -> Self {
+        Self { state }
+    }
+
+    pub fn from_bytes(bytes: [u8; 16]) -> Self {
+        let state: [[u8; 4]; 4] = bytes
+            .chunks_exact(4)
+            .map(|c| c.try_into().unwrap())
+            .collect::<Vec<_>>()
+            .try_into()
+            .unwrap();
+
+        Self { state }
     }
 
     pub fn sub_bytes(&mut self) {
-        for row in &mut self.bytes {
+        for row in &mut self.state {
             *row = util::apply_sbox(*row, SBOX);
         }
     }
 
     pub fn shift_rows(&mut self) {
-        for (i, row) in self.bytes.iter_mut().enumerate() {
+        for (i, row) in self.state.iter_mut().enumerate() {
             *row = util::rot_left(*row, i as isize);
         }
     }
 
     pub fn mix_columns(&mut self) {
-        let copy = self.bytes;
+        let copy = self.state;
 
         for c in 0..4 {
             for r in 0..4 {
-                self.bytes[r][c] = match r {
+                self.state[r][c] = match r {
                     0 => {
                         GMUL2[copy[0][c] as usize]
                             ^ GMUL3[copy[1][c] as usize]
@@ -56,6 +67,14 @@ impl Block {
                     }
                     _ => panic!(),
                 }
+            }
+        }
+    }
+
+    pub fn add_round_key(&mut self, round_key: u128) {
+        for (i, row) in self.state.iter_mut().enumerate() {
+            for (j, byte) in row.iter_mut().enumerate() {
+                *byte ^= round_key.to_be_bytes()[i * 4 + j];
             }
         }
     }
