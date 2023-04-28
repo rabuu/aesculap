@@ -72,7 +72,24 @@ pub type AES128Key = Key<4, 11>;
 pub type AES192Key = Key<6, 13>;
 pub type AES256Key = Key<8, 15>;
 
-pub trait AESKey {}
-impl AESKey for AES128Key {}
-impl AESKey for AES192Key {}
-impl AESKey for AES256Key {}
+pub trait AESKey<const R: usize> {
+    fn round_keys(&self) -> [Subkey; R];
+}
+
+impl AESKey<11> for AES128Key {
+    fn round_keys(&self) -> [Subkey; 11] {
+        self.generate_round_keys()
+    }
+}
+
+impl AESKey<13> for AES192Key {
+    fn round_keys(&self) -> [Subkey; 13] {
+        self.generate_round_keys()
+    }
+}
+
+impl AESKey<15> for AES256Key {
+    fn round_keys(&self) -> [Subkey; 15] {
+        self.generate_round_keys()
+    }
+}
