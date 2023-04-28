@@ -1,6 +1,8 @@
-fn main() {
-    let mut block = aesculap::block::Block::new([[0xd4; 4], [0x32; 4], [0xf4; 4], [0xae; 4]]);
-    block.mix_columns();
+use aesculap::key::AES128Key;
 
-    println!("{:#x?}", block);
+fn main() {
+    println!("{:x?}", aesculap::sbox::SBOX[0x63]);
+    println!("{:x?}", aesculap::sbox::SBOX[0x62]);
+    let key = AES128Key::new([0, 0, 0, 0]);
+    println!("{:#034x?}", key.generate_round_keys());
 }

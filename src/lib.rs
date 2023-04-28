@@ -1,3 +1,5 @@
 pub mod block;
-pub(crate) mod gmul;
-pub(crate) mod sbox;
+pub mod gmul;
+pub mod key;
+pub mod sbox;
+pub mod util;
