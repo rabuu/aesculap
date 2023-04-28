@@ -1,23 +1,23 @@
-pub fn rot_left(mut word: [u8; 4], shift: isize) -> [u8; 4] {
+pub fn rot_left<const N: usize>(mut bytes: [u8; N], shift: isize) -> [u8; N] {
     if shift == 0 {
-        return word;
+        return bytes;
     }
 
-    let copy = word.clone();
-    for (i, byte) in word.iter_mut().enumerate() {
-        let shift_idx = (i as isize + shift).rem_euclid(4) as usize;
+    let copy = bytes.clone();
+    for (i, byte) in bytes.iter_mut().enumerate() {
+        let shift_idx = (i as isize + shift).rem_euclid(N as isize) as usize;
         *byte = copy[shift_idx];
     }
 
-    word
+    bytes
 }
 
-pub fn apply_sbox(mut word: [u8; 4], sbox: [u8; 256]) -> [u8; 4] {
-    for byte in &mut word {
+pub fn apply_sbox<const N: usize>(mut bytes: [u8; N], sbox: [u8; 256]) -> [u8; N] {
+    for byte in &mut bytes {
         *byte = sbox[*byte as usize];
     }
 
-    word
+    bytes
 }
 
 pub fn bytes_as_u32(bytes: [u8; 4]) -> u32 {

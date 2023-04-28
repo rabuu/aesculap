@@ -28,24 +28,19 @@ impl<const N: usize, const R: usize> Key<N, R> {
             let prev = words[i - 1];
 
             if i % N == 0 {
-                let prev =
-                    util::apply_sbox(dbg!(util::rot_left(dbg!(prev.to_be_bytes()), 1)), SBOX);
-
-                if i == 8 {
-                    println!("{:x?}", prev);
-                }
-
+                let prev = util::apply_sbox(util::rot_left(prev.to_be_bytes(), 1), SBOX);
                 let expanded_word = prev_round
                     ^ util::bytes_as_u32(prev)
                     ^ util::bytes_as_u32([RCON[i / N], 0, 0, 0]);
+
                 words.push(expanded_word);
                 continue;
             }
 
             if N > 6 && i % N == 4 {
                 let prev = util::apply_sbox(prev.to_be_bytes(), SBOX);
-
                 let expanded_word = prev_round ^ util::bytes_as_u32(prev);
+
                 words.push(expanded_word);
                 continue;
             }
@@ -58,7 +53,6 @@ impl<const N: usize, const R: usize> Key<N, R> {
     }
 
     pub fn generate_round_keys(&self) -> [Subkey; R] {
-        println!("{:#x?}", self.key_schedule());
         let round_keys: Vec<Subkey> = self
             .key_schedule()
             .chunks_exact(4)
