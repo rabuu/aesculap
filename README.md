@@ -8,3 +8,5 @@ Implementation of the Advanced Encryption Standard (AES) algorithm.
 - [Rijndael S-box](https://en.wikipedia.org/wiki/Rijndael_S-box)
 - [AES key schedule](https://en.wikipedia.org/wiki/AES_key_schedule)
 - [Rijndael MixColumns](https://en.wikipedia.org/wiki/Rijndael_MixColumns)
+- [braincoke.fr on the AES Key Schedule](https://braincoke.fr/blog/2020/08/the-aes-key-schedule-explained/)
+- [AES encryption and decryption tool](https://www.devglan.com/online-tools/aes-encryption-decryption)
