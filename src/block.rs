@@ -23,6 +23,20 @@ impl Block {
         Self { state }
     }
 
+    pub fn dump_bytes(&self) -> [u8; 16] {
+        let mut dump = [0; 16];
+
+        let mut i = 0;
+        for row in self.state {
+            for byte in row {
+                dump[i] = byte;
+                i += 1;
+            }
+        }
+
+        dump
+    }
+
     pub fn sub_bytes(&mut self) {
         for row in &mut self.state {
             *row = util::apply_sbox(*row, SBOX);

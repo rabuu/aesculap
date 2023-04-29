@@ -93,3 +93,51 @@ impl AESKey<15> for AES256Key {
         self.generate_round_keys()
     }
 }
+
+impl AES128Key {
+    pub fn from_bytes(bytes: [u8; 16]) -> Self {
+        let key_as_words: Vec<Word> = bytes
+            .chunks_exact(4)
+            .map(|c| {
+                c.iter()
+                    .enumerate()
+                    .map(|(i, &x)| (x as Word) << (3 - i) * 8)
+                    .sum()
+            })
+            .collect();
+
+        Self(key_as_words.try_into().unwrap())
+    }
+}
+
+impl AES192Key {
+    pub fn from_bytes(bytes: [u8; 24]) -> Self {
+        let key_as_words: Vec<Word> = bytes
+            .chunks_exact(4)
+            .map(|c| {
+                c.iter()
+                    .enumerate()
+                    .map(|(i, &x)| (x as Word) << (3 - i) * 8)
+                    .sum()
+            })
+            .collect();
+
+        Self(key_as_words.try_into().unwrap())
+    }
+}
+
+impl AES256Key {
+    pub fn from_bytes(bytes: [u8; 32]) -> Self {
+        let key_as_words: Vec<Word> = bytes
+            .chunks_exact(4)
+            .map(|c| {
+                c.iter()
+                    .enumerate()
+                    .map(|(i, &x)| (x as Word) << (3 - i) * 8)
+                    .sum()
+            })
+            .collect();
+
+        Self(key_as_words.try_into().unwrap())
+    }
+}
