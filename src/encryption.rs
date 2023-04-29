@@ -1,6 +1,9 @@
 use crate::{block::Block, key::AESKey};
 
-pub fn encrypt_block<const R: usize>(block: &mut Block, key: impl AESKey<R>) {
+pub fn encrypt_block<const R: usize, K>(block: &mut Block, key: &K)
+where
+    K: AESKey<R>,
+{
     let round_keys = key.round_keys();
 
     for (i, round_key) in round_keys.into_iter().enumerate() {
