@@ -38,8 +38,8 @@ impl Block {
         let mut dump = [0; 16];
 
         let mut i = 0;
-        for row in self.state {
-            for byte in row {
+        for col in self.state {
+            for byte in col {
                 dump[i] = byte;
                 i += 1;
             }
@@ -49,47 +49,33 @@ impl Block {
     }
 
     pub fn sub_bytes(&mut self) {
-        for row in &mut self.state {
-            *row = util::apply_sbox(*row, SBOX);
+        for col in &mut self.state {
+            *col = util::apply_sbox(*col, SBOX);
         }
     }
 
     pub fn shift_rows(&mut self) {
-        for (i, row) in self.state.iter_mut().enumerate() {
+        let mut transposed = util::transpose_array2d(&self.state);
+        for (i, row) in transposed.iter_mut().enumerate() {
             *row = util::rot_left(*row, i as isize);
         }
+
+        self.state = util::transpose_array2d(&transposed);
     }
 
     pub fn mix_columns(&mut self) {
         let copy = self.state;
 
         for c in 0..4 {
+            let col = &mut self.state[c];
+            let copy = copy[c];
+
             for r in 0..4 {
-                self.state[r][c] = match r {
-                    0 => {
-                        GMUL2[copy[0][c] as usize]
-                            ^ GMUL3[copy[1][c] as usize]
-                            ^ copy[2][c]
-                            ^ copy[3][c]
-                    }
-                    1 => {
-                        copy[0][c]
-                            ^ GMUL2[copy[1][c] as usize]
-                            ^ GMUL3[copy[2][c] as usize]
-                            ^ copy[3][c]
-                    }
-                    2 => {
-                        copy[0][c]
-                            ^ copy[1][c]
-                            ^ GMUL2[copy[2][c] as usize]
-                            ^ GMUL3[copy[3][c] as usize]
-                    }
-                    3 => {
-                        GMUL3[copy[0][c] as usize]
-                            ^ copy[1][c]
-                            ^ copy[2][c]
-                            ^ GMUL2[copy[3][c] as usize]
-                    }
+                col[r] = match r {
+                    0 => GMUL2[copy[0] as usize] ^ GMUL3[copy[1] as usize] ^ copy[2] ^ copy[3],
+                    1 => copy[0] ^ GMUL2[copy[1] as usize] ^ GMUL3[copy[2] as usize] ^ copy[3],
+                    2 => copy[0] ^ copy[1] ^ GMUL2[copy[2] as usize] ^ GMUL3[copy[3] as usize],
+                    3 => GMUL3[copy[0] as usize] ^ copy[1] ^ copy[2] ^ GMUL2[copy[3] as usize],
                     _ => panic!(),
                 }
             }
@@ -97,8 +83,8 @@ impl Block {
     }
 
     pub fn add_round_key(&mut self, round_key: u128) {
-        for (i, row) in self.state.iter_mut().enumerate() {
-            for (j, byte) in row.iter_mut().enumerate() {
+        for (i, col) in self.state.iter_mut().enumerate() {
+            for (j, byte) in col.iter_mut().enumerate() {
                 *byte ^= round_key.to_be_bytes()[i * 4 + j];
             }
         }
@@ -143,10 +129,10 @@ mod tests {
         ];
 
         let shifted_state = [
-            [0x0, 0x1, 0x2, 0x3],
-            [0x5, 0x6, 0x7, 0x4],
-            [0xa, 0xb, 0x8, 0x9],
-            [0xf, 0xc, 0xd, 0xe],
+            [0x0, 0x5, 0xa, 0xf],
+            [0x4, 0x9, 0xe, 0x3],
+            [0x8, 0xd, 0x2, 0x7],
+            [0xc, 0x1, 0x6, 0xb],
         ];
 
         let mut block = Block::new(state);
@@ -160,18 +146,18 @@ mod tests {
     #[test]
     fn mix_columns_step() {
         let state = [
-            [0xdb, 0xf2, 0xc6, 0xd4],
-            [0x13, 0x0a, 0xc6, 0xd4],
-            [0x53, 0x22, 0xc6, 0xd4],
-            [0x45, 0x5c, 0xc6, 0xd5],
+            [0xdb, 0x13, 0x53, 0x45],
+            [0xf2, 0x0a, 0x22, 0x5c],
+            [0xc6, 0xc6, 0xc6, 0xc6],
+            [0xd4, 0xd4, 0xd4, 0xd5],
         ];
 
         // see https://en.wikipedia.org/wiki/Rijndael_MixColumns#Test_vectors_for_MixColumn()
         let mixed_state = [
-            [0x8e, 0x9f, 0xc6, 0xd5],
-            [0x4d, 0xdc, 0xc6, 0xd5],
-            [0xa1, 0x58, 0xc6, 0xd7],
-            [0xbc, 0x9d, 0xc6, 0xd6],
+            [0x8e, 0x4d, 0xa1, 0xbc],
+            [0x9f, 0xdc, 0x58, 0x9d],
+            [0xc6, 0xc6, 0xc6, 0xc6],
+            [0xd5, 0xd5, 0xd7, 0xd6],
         ];
 
         let mut block = Block::new(state);

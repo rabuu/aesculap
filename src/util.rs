@@ -1,3 +1,15 @@
+pub fn transpose_array2d<const N: usize>(inp: &[[u8; N]; N]) -> [[u8; N]; N] {
+    let mut out = [[0; N]; N];
+
+    for i in 0..N {
+        for j in 0..N {
+            out[i][j] = inp[j][i];
+        }
+    }
+
+    out
+}
+
 pub fn rot_left<const N: usize>(mut bytes: [u8; N], shift: isize) -> [u8; N] {
     if shift == 0 {
         return bytes;
