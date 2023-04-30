@@ -10,3 +10,4 @@ Implementation of the Advanced Encryption Standard (AES) algorithm.
 - [Rijndael MixColumns](https://en.wikipedia.org/wiki/Rijndael_MixColumns)
 - [braincoke.fr on the AES Key Schedule](https://braincoke.fr/blog/2020/08/the-aes-key-schedule-explained/)
 - [AES encryption and decryption tool](https://devtoolcafe.com/tools/aes)
+- [PKCS padding](https://www.ibm.com/docs/en/zos/2.1.0?topic=rules-pkcs-padding-method)

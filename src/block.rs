@@ -1,6 +1,9 @@
 use crate::gmul::*;
+use crate::padding::Padding;
 use crate::sbox::*;
 use crate::util;
+
+pub const BLOCK_SIZE: usize = 16;
 
 #[derive(Debug, PartialEq)]
 pub struct Block {
@@ -12,7 +15,7 @@ impl Block {
         Self { state }
     }
 
-    pub fn from_bytes(bytes: [u8; 16]) -> Self {
+    pub fn from_bytes(bytes: [u8; BLOCK_SIZE]) -> Self {
         let state: [[u8; 4]; 4] = bytes
             .chunks_exact(4)
             .map(|c| c.try_into().unwrap())
@@ -23,7 +26,15 @@ impl Block {
         Self { state }
     }
 
-    pub fn dump_bytes(&self) -> [u8; 16] {
+    pub fn load(bytes: &[u8], padding: Padding) -> Vec<Self> {
+        padding
+            .pad(bytes)
+            .into_iter()
+            .map(Self::from_bytes)
+            .collect()
+    }
+
+    pub fn dump_bytes(&self) -> [u8; BLOCK_SIZE] {
         let mut dump = [0; 16];
 
         let mut i = 0;
