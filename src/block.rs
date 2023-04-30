@@ -167,4 +167,30 @@ mod tests {
 
         assert_eq!(block, expected_block);
     }
+
+    #[test]
+    fn add_round_key_step() {
+        let state = [
+            [0x59, 0x1c, 0xee, 0xa1],
+            [0xc2, 0x86, 0x36, 0xd1],
+            [0xca, 0xdd, 0xaf, 0x02],
+            [0x4a, 0x27, 0xdc, 0xa2],
+        ];
+
+        let subkey = 0x62636363626363636263636362636363;
+
+        let added_state = [
+            [0x3b, 0x7f, 0x8d, 0xc2],
+            [0xa0, 0xe5, 0x55, 0xb2],
+            [0xa8, 0xbe, 0xcc, 0x61],
+            [0x28, 0x44, 0xbf, 0xc1],
+        ];
+
+        let mut block = Block::new(state);
+        block.add_round_key(subkey);
+
+        let expected_block = Block::new(added_state);
+
+        assert_eq!(block, expected_block);
+    }
 }
