@@ -1,21 +1,23 @@
 use aesculap::block::Block;
 use aesculap::encryption::encrypt_block;
 use aesculap::key::AES128Key;
+use aesculap::padding::Padding;
 
 #[test]
-fn single_block_aes128() {
-    let encryption_text = "I use Rust btw<3";
-    let mut block = Block::from_bytes(encryption_text.as_bytes().try_into().unwrap());
+fn single_block_aes128_pkcs() {
+    let encryption_text = b"I use Rust btw";
+    let mut blocks = Block::load(encryption_text, Padding::Pkcs);
+    assert_eq!(blocks.len(), 1);
 
-    let key_text = "This is a test12";
-    let key = AES128Key::from_bytes(key_text.as_bytes().try_into().unwrap());
+    let key_text = b"0123456789abcdef";
+    let key = AES128Key::from_bytes(*key_text);
 
-    encrypt_block(&mut block, &key);
+    encrypt_block(&mut blocks[0], &key);
 
     let expected_bytes = [
-        0x65, 0xdd, 0x99, 0xdf, 0x25, 0xb9, 0xaa, 0x5a, 0x16, 0xb9, 0x40, 0x6f, 0x96, 0xf3, 0x7e,
-        0xb1,
+        0x1b, 0xf1, 0xdb, 0x98, 0x04, 0x1a, 0x4f, 0x2e, 0x2d, 0xd2, 0x06, 0xf8, 0xb6, 0x07, 0xe1,
+        0x79,
     ];
 
-    assert_eq!(block.dump_bytes(), expected_bytes);
+    assert_eq!(blocks[0].dump_bytes(), expected_bytes);
 }
