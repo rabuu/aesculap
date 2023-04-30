@@ -1,8 +1,8 @@
-use crate::{block::Block, key::AESKey};
+use crate::{block::Block, key::Key};
 
 pub fn encrypt_block<const R: usize, K>(block: &mut Block, key: &K)
 where
-    K: AESKey<R>,
+    K: Key<R>,
 {
     let round_keys = key.round_keys();
 
