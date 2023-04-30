@@ -1,4 +1,4 @@
-use crate::sbox::*;
+use crate::lookups::sbox::*;
 use crate::util;
 
 use super::{Subkey, Word};

@@ -1,6 +1,5 @@
-use crate::gmul::*;
+use crate::lookups::{gmul::*, sbox::*};
 use crate::padding::Padding;
-use crate::sbox::*;
 use crate::util;
 
 pub const BLOCK_SIZE: usize = 16;
