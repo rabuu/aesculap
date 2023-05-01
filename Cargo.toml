@@ -1,5 +1,6 @@
 [package]
 name = "aesculap"
+description = "AES encryption and decryption CLI tool"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +8,7 @@ edition = "2021"
 
 [dependencies]
 rand = { version = "0.8", optional = true }
+clap = { version = "4", features = ["derive"] }
 
 [features]
 default = ["rand"]
