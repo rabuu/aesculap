@@ -219,3 +219,15 @@ impl ops::BitXorAssign for Block {
         }
     }
 }
+
+impl From<[u8; 16]> for Block {
+    fn from(value: [u8; 16]) -> Self {
+        Block::from_bytes(value)
+    }
+}
+
+impl From<u128> for Block {
+    fn from(value: u128) -> Self {
+        Block::from_bytes(value.to_be_bytes())
+    }
+}
