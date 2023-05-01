@@ -28,10 +28,10 @@ enum Command {
         iv: Option<Iv>,
 
         #[command(flatten)]
-        output: Output,
+        input: Input,
 
         #[command(flatten)]
-        input: Input,
+        output: Output,
     },
 
     #[command(alias = "de")]
@@ -51,10 +51,10 @@ enum Command {
         iv_file: Option<PathBuf>,
 
         #[command(flatten)]
-        output: Output,
+        input: Input,
 
         #[command(flatten)]
-        input: Input,
+        output: Output,
     },
 }
 
@@ -90,21 +90,26 @@ enum Padding {
 
 #[derive(Args, Debug)]
 #[group(required = true, multiple = false)]
-struct Output {
+struct Input {
+    /// Read the input from a file
     #[arg(long, short)]
-    output_file: Option<PathBuf>,
+    input_file: Option<PathBuf>,
 
+    /// Read the input from STDIN
     #[arg(long)]
-    stdout: bool,
+    stdin: bool,
 }
 
 #[derive(Args, Debug)]
 #[group(required = true, multiple = false)]
-struct Input {
-    input_file: Option<PathBuf>,
+struct Output {
+    /// Write the output to a file
+    #[arg(long, short)]
+    output_file: Option<PathBuf>,
 
+    /// Write the output to STDOUT
     #[arg(long)]
-    stdin: bool,
+    stdout: bool,
 }
 
 fn main() {
