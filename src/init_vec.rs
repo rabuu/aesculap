@@ -6,6 +6,11 @@ impl InitializationVector {
     pub fn from_bytes(bytes: [u8; 16]) -> Self {
         Self(Block::from_bytes(bytes))
     }
+
+    #[cfg(feature = "rand")]
+    pub fn random() -> Self {
+        Self(Block::from_bytes(rand::random()))
+    }
 }
 
 impl From<[u8; 16]> for InitializationVector {
