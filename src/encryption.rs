@@ -7,6 +7,7 @@ where
     K: Key<R>,
 {
     let round_keys = key.round_keys();
+    debug_assert_eq!(round_keys.len(), R);
 
     for (i, round_key) in round_keys.into_iter().enumerate() {
         if i == 0 {
