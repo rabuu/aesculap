@@ -1,3 +1,5 @@
+use std::ops;
+
 use crate::lookups::{gmul::*, sbox::*};
 use crate::padding::Padding;
 use crate::util;
@@ -191,5 +193,29 @@ mod tests {
         let expected_block = Block::new(added_state);
 
         assert_eq!(block, expected_block);
+    }
+}
+
+impl ops::BitXor for Block {
+    type Output = Block;
+
+    fn bitxor(mut self, rhs: Self) -> Self::Output {
+        for (i, col) in self.state.iter_mut().enumerate() {
+            for (j, byte) in col.iter_mut().enumerate() {
+                *byte ^= rhs.state[i][j];
+            }
+        }
+
+        self
+    }
+}
+
+impl ops::BitXorAssign for Block {
+    fn bitxor_assign(&mut self, rhs: Self) {
+        for (i, col) in self.state.iter_mut().enumerate() {
+            for (j, byte) in col.iter_mut().enumerate() {
+                *byte ^= rhs.state[i][j];
+            }
+        }
     }
 }
