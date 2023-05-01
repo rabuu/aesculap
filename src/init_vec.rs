@@ -1,5 +1,6 @@
 use crate::block::Block;
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct InitializationVector(Block);
 
 impl InitializationVector {

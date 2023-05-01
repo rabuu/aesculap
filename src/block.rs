@@ -6,7 +6,7 @@ use crate::util;
 
 pub const BLOCK_SIZE: usize = 16;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Block {
     state: [[u8; 4]; 4],
 }
