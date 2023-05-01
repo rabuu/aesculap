@@ -1,6 +1,13 @@
-use std::path::PathBuf;
+use std::{
+    fs::File,
+    io::{Read, Write},
+    path::PathBuf,
+    process,
+};
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
+
+use aesculap::{init_vec::InitializationVector, EncryptionMode};
 
 #[derive(Parser, Debug)]
 #[command(author, version)]
@@ -103,6 +110,7 @@ struct Iv {
     iv_file: Option<PathBuf>,
 
     /// Generate a random IV and write it to a file
+    #[cfg(feature = "rand")]
     #[arg(long)]
     random_iv: Option<PathBuf>,
 }
@@ -133,5 +141,72 @@ struct Output {
 
 fn main() {
     let cli = Cli::parse();
-    dbg!(cli);
+
+    match cli.cmd {
+        Command::Encrypt {
+            key_file,
+            mode,
+            padding,
+            iv,
+            input,
+            output,
+        } => {
+            let key_file = File::open(&key_file).unwrap_or_else(|err| {
+                eprintln!("Error: {}", err);
+                process::exit(1);
+            });
+
+            let encryption_mode: EncryptionMode = if mode.ecb {
+                EncryptionMode::ECB
+            } else if mode.cbc {
+                let iv = iv.expect("CBC mode but no IV");
+                let iv = if let Some(iv_file) = iv.iv_file {
+                    let iv_file = File::open(&iv_file).unwrap_or_else(|err| {
+                        eprintln!("Error: {}", err);
+                        process::exit(1);
+                    });
+
+                    let mut buf = [0; 16];
+                    iv_file.read_exact(&mut buf);
+
+                    let iv = InitializationVector::from_bytes(buf);
+
+                    EncryptionMode::CBC(iv)
+                } else if let Some(iv_file) = iv.random_iv {
+                    if cfg!(feature = "rand") {
+                        let iv_file = File::create(&iv_file).unwrap_or_else(|err| {
+                            eprintln!("Error: {}", err);
+                            process::exit(1);
+                        });
+
+                        let random_iv = InitializationVector::random();
+                        iv_file.write_all(&random_iv.into_bytes());
+
+                        EncryptionMode::CBC(random_iv)
+                    } else {
+                        panic!("Feature 'rand' not enabled");
+                    }
+                } else {
+                    panic!("IV neither given nor random");
+                };
+            } else {
+                panic!("Mode neither ECB nor CBC");
+            };
+
+            match key_file.metadata().unwrap().len() {
+                16 => (),
+                24 => (),
+                32 => (),
+                _ => (),
+            };
+        }
+        Command::Decrypt {
+            key_file,
+            mode,
+            padding,
+            iv_file,
+            input,
+            output,
+        } => todo!(),
+    }
 }
