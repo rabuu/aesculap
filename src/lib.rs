@@ -1,4 +1,5 @@
 pub mod block;
+pub mod decryption;
 pub mod encryption;
 pub mod init_vec;
 pub mod key;
