@@ -1,57 +1,100 @@
-#[derive(Debug)]
-pub enum Padding {
-    Pkcs,
-    BytePadding(u8),
-    ZeroPadding,
+pub trait Padding<const B: usize> {
+    fn pad(&self, bytes: &[u8]) -> Vec<[u8; B]>;
+    fn unpad(&self, padded_bytes: &[[u8; B]]) -> Vec<u8>;
 }
 
-impl Padding {
-    pub fn pad<const B: usize>(&self, bytes: &[u8]) -> Vec<[u8; B]> {
-        use Padding::*;
+#[derive(Debug)]
+pub struct Pkcs7Padding;
 
+impl<const B: usize> Padding<B> for Pkcs7Padding {
+    fn pad(&self, bytes: &[u8]) -> Vec<[u8; B]> {
         let mut blocks: Vec<[u8; B]> = bytes
             .chunks_exact(B)
             .map(|c| c.try_into().unwrap())
             .collect();
 
         let remainder = bytes.chunks_exact(B).remainder();
+        let missing_bytes = B - remainder.len();
 
-        match *self {
-            Pkcs => pkcs(&mut blocks, remainder),
-            BytePadding(byte) => pad_with_byte(&mut blocks, remainder, byte),
-            ZeroPadding => pad_with_byte(&mut blocks, remainder, 0),
-        }
+        let last_block: [u8; B] = remainder
+            .iter()
+            .chain(vec![missing_bytes as u8; missing_bytes].iter())
+            .copied()
+            .collect::<Vec<u8>>()
+            .try_into()
+            .unwrap();
+        blocks.push(last_block);
 
         blocks
     }
+
+    fn unpad(&self, padded_bytes: &[[u8; B]]) -> Vec<u8> {
+        if padded_bytes.len() == 0 {
+            return vec![];
+        }
+
+        let mut bytes: Vec<u8> = padded_bytes.into_iter().flatten().copied().collect();
+        let last_byte = *bytes.last().unwrap();
+        bytes.truncate((bytes.len() as u8 - last_byte) as usize);
+
+        bytes
+    }
 }
 
-fn pkcs<const B: usize>(blocks: &mut Vec<[u8; B]>, remainder: &[u8]) {
-    let missing_bytes = B - remainder.len();
-    let last_block: [u8; B] = remainder
-        .iter()
-        .chain(vec![missing_bytes as u8; missing_bytes].iter())
-        .map(|&b| b)
-        .collect::<Vec<u8>>()
-        .try_into()
-        .unwrap();
+#[derive(Debug)]
+pub struct BytePadding(pub u8);
 
-    blocks.push(last_block);
-}
+impl<const B: usize> Padding<B> for BytePadding {
+    fn pad(&self, bytes: &[u8]) -> Vec<[u8; B]> {
+        let missing_bytes = bytes.len() % B;
 
-fn pad_with_byte<const B: usize>(blocks: &mut Vec<[u8; B]>, remainder: &[u8], byte: u8) {
-    if remainder.is_empty() {
-        return;
+        [bytes, &vec![self.0; missing_bytes]]
+            .concat()
+            .chunks_exact(B)
+            .map(|c| c.try_into().unwrap())
+            .collect()
     }
 
-    let missing_bytes = B - remainder.len();
-    let last_block: [u8; B] = remainder
-        .iter()
-        .chain(vec![byte; missing_bytes].iter())
-        .map(|&b| b)
-        .collect::<Vec<u8>>()
-        .try_into()
-        .unwrap();
+    fn unpad(&self, padded_bytes: &[[u8; B]]) -> Vec<u8> {
+        if padded_bytes.len() == 0 {
+            return vec![];
+        }
 
-    blocks.push(last_block);
+        let mut bytes: Vec<u8> = padded_bytes.into_iter().flatten().copied().collect();
+
+        while *bytes.last().unwrap() == self.0 {
+            bytes.pop();
+        }
+
+        bytes
+    }
+}
+
+#[derive(Debug)]
+pub struct ZeroPadding;
+
+impl<const B: usize> Padding<B> for ZeroPadding {
+    fn pad(&self, bytes: &[u8]) -> Vec<[u8; B]> {
+        let missing_bytes = bytes.len() % B;
+
+        [bytes, &vec![0; missing_bytes]]
+            .concat()
+            .chunks_exact(B)
+            .map(|c| c.try_into().unwrap())
+            .collect()
+    }
+
+    fn unpad(&self, padded_bytes: &[[u8; B]]) -> Vec<u8> {
+        if padded_bytes.len() == 0 {
+            return vec![];
+        }
+
+        let mut bytes: Vec<u8> = padded_bytes.into_iter().flatten().copied().collect();
+
+        while *bytes.last().unwrap() == 0 {
+            bytes.pop();
+        }
+
+        bytes
+    }
 }

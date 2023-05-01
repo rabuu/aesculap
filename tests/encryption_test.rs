@@ -2,13 +2,13 @@ use aesculap::block::Block;
 use aesculap::encryption::{encrypt_block, encrypt_bytes};
 use aesculap::init_vec::InitializationVector;
 use aesculap::key::{AES128Key, AES192Key, AES256Key};
-use aesculap::padding::Padding;
+use aesculap::padding::{BytePadding, Pkcs7Padding, ZeroPadding};
 use aesculap::EncryptionMode;
 
 #[test]
 fn single_block_aes128_pkcs() {
     let encryption_text = b"I use Rust btw";
-    let mut blocks = Block::load(encryption_text, Padding::Pkcs);
+    let mut blocks = Block::load(encryption_text, Pkcs7Padding);
     assert_eq!(blocks.len(), 1);
 
     let key_text = b"0123456789abcdef";
@@ -27,7 +27,7 @@ fn single_block_aes128_pkcs() {
 #[test]
 fn single_block_aes128_byte_padding() {
     let encryption_text = b"I use Rust btw";
-    let mut blocks = Block::load(encryption_text, Padding::BytePadding(0x69));
+    let mut blocks = Block::load(encryption_text, BytePadding(0x69));
     assert_eq!(blocks.len(), 1);
 
     let key_text = b"0123456789abcdef";
@@ -46,7 +46,7 @@ fn single_block_aes128_byte_padding() {
 #[test]
 fn single_block_aes128_zero_padding() {
     let encryption_text = b"I use Rust btw";
-    let mut blocks = Block::load(encryption_text, Padding::ZeroPadding);
+    let mut blocks = Block::load(encryption_text, ZeroPadding);
     assert_eq!(blocks.len(), 1);
 
     let key_text = b"0123456789abcdef";
@@ -65,7 +65,7 @@ fn single_block_aes128_zero_padding() {
 #[test]
 fn single_block_aes192_pkcs() {
     let encryption_text = b"I use Rust btw";
-    let mut blocks = Block::load(encryption_text, Padding::Pkcs);
+    let mut blocks = Block::load(encryption_text, Pkcs7Padding);
     assert_eq!(blocks.len(), 1);
 
     let key_text = b"0123456789abcdef01234567";
@@ -84,7 +84,7 @@ fn single_block_aes192_pkcs() {
 #[test]
 fn single_block_aes256_pkcs() {
     let encryption_text = b"I use Rust btw";
-    let mut blocks = Block::load(encryption_text, Padding::Pkcs);
+    let mut blocks = Block::load(encryption_text, Pkcs7Padding);
     assert_eq!(blocks.len(), 1);
 
     let key_text = b"0123456789abcdef0123456789abcdef";
@@ -103,7 +103,7 @@ fn single_block_aes256_pkcs() {
 #[test]
 fn multiple_blocks_aes128_pkcs() {
     let encryption_text = b"felis eget nunc lobortis mattis aliquam faucibus purus in massa tempor nec feugiat nisl pretium fusce";
-    let mut blocks = Block::load(encryption_text, Padding::Pkcs);
+    let mut blocks = Block::load(encryption_text, Pkcs7Padding);
 
     let key_text = b"0123456789abcdef";
     let key = AES128Key::from_bytes(*key_text);
@@ -139,7 +139,7 @@ fn raw_bytes_aes128_pkcs_ecb() {
     let key_text = b"0123456789abcdef";
     let key = AES128Key::from_bytes(*key_text);
 
-    let encrypted_bytes = encrypt_bytes(encryption_text, &key, Padding::Pkcs, EncryptionMode::ECB);
+    let encrypted_bytes = encrypt_bytes(encryption_text, &key, Pkcs7Padding, EncryptionMode::ECB);
 
     let expected_bytes = vec![
         0xea, 0x90, 0xe6, 0xe1, 0xdd, 0xa8, 0x44, 0xd5, 0x24, 0x70, 0x7e, 0x2a, 0x1e, 0x5e, 0xd7,
@@ -165,12 +165,8 @@ fn raw_bytes_aes128_pkcs_cbc() {
     let iv_text = b"abcdef0123456789";
     let iv = InitializationVector::from_bytes(*iv_text);
 
-    let encrypted_bytes = encrypt_bytes(
-        encryption_text,
-        &key,
-        Padding::Pkcs,
-        EncryptionMode::CBC(iv),
-    );
+    let encrypted_bytes =
+        encrypt_bytes(encryption_text, &key, Pkcs7Padding, EncryptionMode::CBC(iv));
 
     let expected_bytes = vec![
         0x2c, 0xb2, 0x10, 0x5e, 0x27, 0x6c, 0xc5, 0x31, 0xb8, 0xd6, 0x06, 0x6a, 0xca, 0x8f, 0xcb,

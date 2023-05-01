@@ -28,14 +28,15 @@ where
     }
 }
 
-pub fn encrypt_bytes<const R: usize, K>(
+pub fn encrypt_bytes<const R: usize, K, P>(
     bytes: &[u8],
     key: &K,
-    padding: Padding,
+    padding: P,
     mode: EncryptionMode,
 ) -> Vec<u8>
 where
     K: Key<R>,
+    P: Padding<16>,
 {
     let mut blocks = Block::load(bytes, padding);
 
