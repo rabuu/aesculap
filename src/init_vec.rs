@@ -12,6 +12,10 @@ impl InitializationVector {
     pub fn random() -> Self {
         Self(Block::from_bytes(rand::random()))
     }
+
+    pub fn into_bytes(&self) -> [u8; 16] {
+        self.0.dump_bytes()
+    }
 }
 
 impl From<[u8; 16]> for InitializationVector {
