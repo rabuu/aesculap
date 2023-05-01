@@ -8,4 +8,5 @@ pub mod util;
 
 pub enum EncryptionMode {
     ECB,
+    CBC(init_vec::InitializationVector),
 }

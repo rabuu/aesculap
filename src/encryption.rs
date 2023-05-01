@@ -1,4 +1,6 @@
-use crate::{block::Block, key::Key, padding::Padding, EncryptionMode};
+use crate::{
+    block::Block, init_vec::InitializationVector, key::Key, padding::Padding, EncryptionMode,
+};
 
 pub fn encrypt_block<const R: usize, K>(block: &mut Block, key: &K)
 where
@@ -39,6 +41,7 @@ where
 
     match mode {
         EncryptionMode::ECB => ecb(&mut blocks, key),
+        EncryptionMode::CBC(iv) => cbc(&mut blocks, key, iv),
     }
 
     blocks
@@ -54,5 +57,17 @@ where
 {
     for block in blocks {
         encrypt_block(block, key);
+    }
+}
+
+fn cbc<const R: usize, K>(blocks: &mut [Block], key: &K, iv: InitializationVector)
+where
+    K: Key<R>,
+{
+    let mut prev: Block = iv.into();
+    for block in blocks {
+        *block ^= prev;
+        encrypt_block(block, key);
+        prev = *block;
     }
 }
