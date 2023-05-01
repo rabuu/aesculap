@@ -4,3 +4,7 @@ pub mod key;
 pub mod lookups;
 pub mod padding;
 pub mod util;
+
+pub enum EncryptionMode {
+    ECB,
+}
