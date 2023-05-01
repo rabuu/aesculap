@@ -23,6 +23,44 @@ fn single_block_aes128_pkcs() {
 }
 
 #[test]
+fn single_block_aes128_byte_padding() {
+    let encryption_text = b"I use Rust btw";
+    let mut blocks = Block::load(encryption_text, Padding::BytePadding(0x69));
+    assert_eq!(blocks.len(), 1);
+
+    let key_text = b"0123456789abcdef";
+    let key = AES128Key::from_bytes(*key_text);
+
+    encrypt_block(&mut blocks[0], &key);
+
+    let expected_bytes = [
+        0x14, 0x18, 0x6d, 0xee, 0x0b, 0x00, 0x7f, 0xf7, 0xb5, 0x6e, 0x8b, 0x01, 0x18, 0x0c, 0x1b,
+        0xf0,
+    ];
+
+    assert_eq!(blocks[0].dump_bytes(), expected_bytes);
+}
+
+#[test]
+fn single_block_aes128_zero_padding() {
+    let encryption_text = b"I use Rust btw";
+    let mut blocks = Block::load(encryption_text, Padding::ZeroPadding);
+    assert_eq!(blocks.len(), 1);
+
+    let key_text = b"0123456789abcdef";
+    let key = AES128Key::from_bytes(*key_text);
+
+    encrypt_block(&mut blocks[0], &key);
+
+    let expected_bytes = [
+        0xed, 0xf0, 0x38, 0x51, 0x31, 0xda, 0x09, 0x7b, 0xc1, 0xc0, 0x41, 0x10, 0x51, 0x21, 0xc2,
+        0xa4,
+    ];
+
+    assert_eq!(blocks[0].dump_bytes(), expected_bytes);
+}
+
+#[test]
 fn single_block_aes192_pkcs() {
     let encryption_text = b"I use Rust btw";
     let mut blocks = Block::load(encryption_text, Padding::Pkcs);
