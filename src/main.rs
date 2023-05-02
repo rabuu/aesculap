@@ -7,7 +7,13 @@ use std::{
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
-use aesculap::{init_vec::InitializationVector, EncryptionMode};
+use aesculap::{
+    encryption::encrypt_bytes,
+    init_vec::InitializationVector,
+    key::{AES128Key, AES192Key, AES256Key, Key},
+    padding::{Padding as PaddingMode, Pkcs7Padding, ZeroPadding},
+    EncryptionMode,
+};
 
 #[derive(Parser, Debug)]
 #[command(author, version)]
@@ -151,36 +157,39 @@ fn main() {
             input,
             output,
         } => {
-            let key_file = File::open(&key_file).unwrap_or_else(|err| {
-                eprintln!("Error: {}", err);
+            let mut key_file = File::open(&key_file).unwrap_or_else(|err| {
+                eprintln!("Error: {:?}: {}", key_file, err);
                 process::exit(1);
             });
 
-            let encryption_mode: EncryptionMode = if mode.ecb {
+            let mut key_bytes: Vec<u8> = Vec::new();
+            key_file.read_to_end(&mut key_bytes).unwrap();
+
+            let mode: EncryptionMode = if mode.ecb {
                 EncryptionMode::ECB
             } else if mode.cbc {
                 let iv = iv.expect("CBC mode but no IV");
-                let iv = if let Some(iv_file) = iv.iv_file {
-                    let iv_file = File::open(&iv_file).unwrap_or_else(|err| {
-                        eprintln!("Error: {}", err);
+                if let Some(iv_file) = iv.iv_file {
+                    let mut iv_file = File::open(&iv_file).unwrap_or_else(|err| {
+                        eprintln!("Error: {:?}: {}", iv_file, err);
                         process::exit(1);
                     });
 
                     let mut buf = [0; 16];
-                    iv_file.read_exact(&mut buf);
+                    iv_file.read_exact(&mut buf).unwrap();
 
                     let iv = InitializationVector::from_bytes(buf);
 
                     EncryptionMode::CBC(iv)
                 } else if let Some(iv_file) = iv.random_iv {
                     if cfg!(feature = "rand") {
-                        let iv_file = File::create(&iv_file).unwrap_or_else(|err| {
-                            eprintln!("Error: {}", err);
+                        let mut iv_file = File::create(&iv_file).unwrap_or_else(|err| {
+                            eprintln!("Error: {:?}: {}", iv_file, err);
                             process::exit(1);
                         });
 
                         let random_iv = InitializationVector::random();
-                        iv_file.write_all(&random_iv.into_bytes());
+                        iv_file.write_all(&random_iv.into_bytes()).unwrap();
 
                         EncryptionMode::CBC(random_iv)
                     } else {
@@ -188,17 +197,80 @@ fn main() {
                     }
                 } else {
                     panic!("IV neither given nor random");
-                };
+                }
             } else {
                 panic!("Mode neither ECB nor CBC");
             };
 
-            match key_file.metadata().unwrap().len() {
-                16 => (),
-                24 => (),
-                32 => (),
-                _ => (),
+            let mut plaintext: Vec<u8> = Vec::new();
+            if let Some(input_file) = input.input_file {
+                let mut input_file = File::open(&input_file).unwrap_or_else(|err| {
+                    eprintln!("Error: {:?}: {}", input_file, err);
+                    process::exit(1);
+                });
+
+                input_file.read_to_end(&mut plaintext).unwrap();
+            } else if input.stdin {
+                todo!()
+            } else {
+                panic!("Neither input file nor STDIN");
             };
+
+            if padding == Padding::None && plaintext.len() % 16 != 0 {
+                eprintln!(
+                    "Error: Without padding the number of input bytes has to be divisible by 16"
+                );
+                process::exit(1);
+            }
+
+            let mut output: Box<dyn Write> = if let Some(output_file) = output.output_file {
+                let output_file = File::create(&output_file).unwrap_or_else(|err| {
+                    eprintln!("Error: {:?}: {}", output_file, err);
+                    process::exit(1);
+                });
+
+                Box::new(output_file)
+            } else if output.stdout {
+                todo!()
+            } else {
+                panic!("Neither output file nor STDOUT");
+            };
+
+            let output_bytes = match key_bytes.len() {
+                16 => {
+                    let key = AES128Key::from_bytes(key_bytes.try_into().unwrap());
+                    match padding {
+                        Padding::Pkcs7 => encrypt_bytes(&plaintext, &key, &Pkcs7Padding, mode),
+                        Padding::Zero | Padding::None => {
+                            encrypt_bytes(&plaintext, &key, &ZeroPadding, mode)
+                        }
+                    }
+                }
+                24 => {
+                    let key = AES192Key::from_bytes(key_bytes.try_into().unwrap());
+                    match padding {
+                        Padding::Pkcs7 => encrypt_bytes(&plaintext, &key, &Pkcs7Padding, mode),
+                        Padding::Zero | Padding::None => {
+                            encrypt_bytes(&plaintext, &key, &ZeroPadding, mode)
+                        }
+                    }
+                }
+                32 => {
+                    let key = AES256Key::from_bytes(key_bytes.try_into().unwrap());
+                    match padding {
+                        Padding::Pkcs7 => encrypt_bytes(&plaintext, &key, &Pkcs7Padding, mode),
+                        Padding::Zero | Padding::None => {
+                            encrypt_bytes(&plaintext, &key, &ZeroPadding, mode)
+                        }
+                    }
+                }
+                _ => {
+                    eprintln!("Error: Key file must have a size of 128, 192 or 256 bits (16, 24, or 32 bytes)");
+                    process::exit(1);
+                }
+            };
+
+            output.write_all(&output_bytes).unwrap();
         }
         Command::Decrypt {
             key_file,
