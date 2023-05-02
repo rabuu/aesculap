@@ -32,7 +32,7 @@ where
 pub fn encrypt_bytes<const R: usize, K, P>(
     bytes: &[u8],
     key: &K,
-    padding: P,
+    padding: &P,
     mode: EncryptionMode,
 ) -> Vec<u8>
 where

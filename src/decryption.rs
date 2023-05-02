@@ -47,7 +47,7 @@ where
         return Err("Number of bytes not divisible by 16");
     }
 
-    let mut blocks = Block::load(bytes, ZeroPadding);
+    let mut blocks = Block::load(bytes, &ZeroPadding);
 
     match mode {
         EncryptionMode::ECB => ecb(&mut blocks, key),

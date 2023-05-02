@@ -27,7 +27,10 @@ impl Block {
         Self { state }
     }
 
-    pub fn load(bytes: &[u8], padding: impl Padding<16>) -> Vec<Self> {
+    pub fn load<P>(bytes: &[u8], padding: &P) -> Vec<Self>
+    where
+        P: Padding<16>,
+    {
         padding
             .pad(bytes)
             .into_iter()
