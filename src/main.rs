@@ -8,6 +8,7 @@ use std::{
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
 use aesculap::{
+    decryption::decrypt_bytes,
     encryption::encrypt_bytes,
     init_vec::InitializationVector,
     key::{AES128Key, AES192Key, AES256Key, Key},
@@ -279,6 +280,114 @@ fn main() {
             iv_file,
             input,
             output,
-        } => todo!(),
+        } => {
+            let mut key_file = File::open(&key_file).unwrap_or_else(|err| {
+                eprintln!("Error: {:?}: {}", key_file, err);
+                process::exit(1);
+            });
+
+            let mut key_bytes: Vec<u8> = Vec::new();
+            key_file.read_to_end(&mut key_bytes).unwrap();
+
+            let mode: EncryptionMode = if mode.ecb {
+                EncryptionMode::ECB
+            } else if mode.cbc {
+                if let Some(iv_file) = iv_file {
+                    let mut iv_file = File::open(&iv_file).unwrap_or_else(|err| {
+                        eprintln!("Error: {:?}: {}", iv_file, err);
+                        process::exit(1);
+                    });
+
+                    let mut buf = [0; 16];
+                    iv_file.read_exact(&mut buf).unwrap();
+
+                    let iv = InitializationVector::from_bytes(buf);
+
+                    EncryptionMode::CBC(iv)
+                } else {
+                    panic!("CBC mode but no iv_file");
+                }
+            } else {
+                panic!("Mode neither ECB nor CBC");
+            };
+
+            let mut ciphertext: Vec<u8> = Vec::new();
+            if let Some(input_file) = input.input_file {
+                let mut input_file = File::open(&input_file).unwrap_or_else(|err| {
+                    eprintln!("Error: {:?}: {}", input_file, err);
+                    process::exit(1);
+                });
+
+                input_file.read_to_end(&mut ciphertext).unwrap();
+            } else if input.stdin {
+                todo!()
+            } else {
+                panic!("Neither input file nor STDIN");
+            };
+
+            let mut output: Box<dyn Write> = if let Some(output_file) = output.output_file {
+                let output_file = File::create(&output_file).unwrap_or_else(|err| {
+                    eprintln!("Error: {:?}: {}", output_file, err);
+                    process::exit(1);
+                });
+
+                Box::new(output_file)
+            } else if output.stdout {
+                todo!()
+            } else {
+                panic!("Neither output file nor STDOUT");
+            };
+
+            let output_bytes = match key_bytes.len() {
+                16 => {
+                    let key = AES128Key::from_bytes(key_bytes.try_into().unwrap());
+                    match padding {
+                        Padding::Pkcs7 => {
+                            decrypt_bytes(&ciphertext, &key, Some(Pkcs7Padding), mode).unwrap()
+                        }
+                        Padding::Zero => {
+                            decrypt_bytes(&ciphertext, &key, Some(ZeroPadding), mode).unwrap()
+                        }
+                        Padding::None => {
+                            decrypt_bytes(&ciphertext, &key, None::<ZeroPadding>, mode).unwrap()
+                        }
+                    }
+                }
+                24 => {
+                    let key = AES192Key::from_bytes(key_bytes.try_into().unwrap());
+                    match padding {
+                        Padding::Pkcs7 => {
+                            decrypt_bytes(&ciphertext, &key, Some(Pkcs7Padding), mode).unwrap()
+                        }
+                        Padding::Zero => {
+                            decrypt_bytes(&ciphertext, &key, Some(ZeroPadding), mode).unwrap()
+                        }
+                        Padding::None => {
+                            decrypt_bytes(&ciphertext, &key, None::<ZeroPadding>, mode).unwrap()
+                        }
+                    }
+                }
+                32 => {
+                    let key = AES256Key::from_bytes(key_bytes.try_into().unwrap());
+                    match padding {
+                        Padding::Pkcs7 => {
+                            decrypt_bytes(&ciphertext, &key, Some(Pkcs7Padding), mode).unwrap()
+                        }
+                        Padding::Zero => {
+                            decrypt_bytes(&ciphertext, &key, Some(ZeroPadding), mode).unwrap()
+                        }
+                        Padding::None => {
+                            decrypt_bytes(&ciphertext, &key, None::<ZeroPadding>, mode).unwrap()
+                        }
+                    }
+                }
+                _ => {
+                    eprintln!("Error: Key file must have a size of 128, 192 or 256 bits (16, 24, or 32 bytes)");
+                    process::exit(1);
+                }
+            };
+
+            output.write_all(&output_bytes).unwrap();
+        }
     }
 }
