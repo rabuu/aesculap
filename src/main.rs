@@ -118,6 +118,7 @@ struct Iv {
 
     /// Generate a random IV and write it to a file
     #[cfg(feature = "rand")]
+    #[arg(value_name = "IV_FILE")]
     #[arg(long)]
     random_iv: Option<PathBuf>,
 }
