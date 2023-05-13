@@ -1,10 +1,8 @@
-use crate::{
-    block::Block,
-    init_vec::InitializationVector,
-    key::Key,
-    padding::{Padding, ZeroPadding},
-    EncryptionMode,
-};
+use crate::block::Block;
+use crate::init_vec::InitializationVector;
+use crate::key::Key;
+use crate::padding::{Padding, ZeroPadding};
+use crate::EncryptionMode;
 
 pub fn decrypt_block<const R: usize, K>(block: &mut Block, key: &K)
 where

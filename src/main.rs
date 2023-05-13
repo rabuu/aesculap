@@ -1,20 +1,17 @@
-use std::{
-    fs::File,
-    io::{Read, Write},
-    path::PathBuf,
-    process,
-};
+use std::fs::File;
+use std::io::{Read, Write};
+use std::path::PathBuf;
+use std::process;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
-use aesculap::{
-    decryption::decrypt_bytes,
-    encryption::encrypt_bytes,
-    init_vec::InitializationVector,
-    key::{AES128Key, AES192Key, AES256Key, Key},
-    padding::{Padding as PaddingMode, Pkcs7Padding, ZeroPadding},
-    EncryptionMode,
-};
+use aesculap::init_vec::InitializationVector;
+use aesculap::key::{AES128Key, AES192Key, AES256Key};
+use aesculap::padding::{Pkcs7Padding, ZeroPadding};
+use aesculap::EncryptionMode;
+
+use aesculap::decryption::decrypt_bytes;
+use aesculap::encryption::encrypt_bytes;
 
 #[derive(Parser, Debug)]
 #[command(author, version)]
