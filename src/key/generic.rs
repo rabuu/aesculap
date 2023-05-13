@@ -58,7 +58,7 @@ impl<const N: usize, const R: usize> GenericKey<N, R> {
             .map(|c| {
                 c.iter()
                     .enumerate()
-                    .map(|(i, &x)| (x as Subkey) << (3 - i) * 32)
+                    .map(|(i, &x)| (x as Subkey) << ((3 - i) * 32))
                     .fold(0, |acc, x| acc | x)
             })
             .collect();

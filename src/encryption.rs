@@ -50,8 +50,7 @@ where
 
     blocks
         .into_iter()
-        .map(|b| b.dump_bytes())
-        .flatten()
+        .flat_map(|b| b.dump_bytes())
         .collect()
 }
 

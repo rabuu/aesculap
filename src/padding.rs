@@ -29,11 +29,11 @@ impl<const B: usize> Padding<B> for Pkcs7Padding {
     }
 
     fn unpad(&self, padded_bytes: &[[u8; B]]) -> Vec<u8> {
-        if padded_bytes.len() == 0 {
+        if padded_bytes.is_empty() {
             return vec![];
         }
 
-        let mut bytes: Vec<u8> = padded_bytes.into_iter().flatten().copied().collect();
+        let mut bytes: Vec<u8> = padded_bytes.iter().flatten().copied().collect();
         let last_byte = *bytes.last().unwrap();
         bytes.truncate((bytes.len() as u8 - last_byte) as usize);
 
@@ -56,11 +56,11 @@ impl<const B: usize> Padding<B> for BytePadding {
     }
 
     fn unpad(&self, padded_bytes: &[[u8; B]]) -> Vec<u8> {
-        if padded_bytes.len() == 0 {
+        if padded_bytes.is_empty() {
             return vec![];
         }
 
-        let mut bytes: Vec<u8> = padded_bytes.into_iter().flatten().copied().collect();
+        let mut bytes: Vec<u8> = padded_bytes.iter().flatten().copied().collect();
 
         while *bytes.last().unwrap() == self.0 {
             bytes.pop();
@@ -85,11 +85,11 @@ impl<const B: usize> Padding<B> for ZeroPadding {
     }
 
     fn unpad(&self, padded_bytes: &[[u8; B]]) -> Vec<u8> {
-        if padded_bytes.len() == 0 {
+        if padded_bytes.is_empty() {
             return vec![];
         }
 
-        let mut bytes: Vec<u8> = padded_bytes.into_iter().flatten().copied().collect();
+        let mut bytes: Vec<u8> = padded_bytes.iter().flatten().copied().collect();
 
         while *bytes.last().unwrap() == 0 {
             bytes.pop();

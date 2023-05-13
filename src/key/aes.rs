@@ -31,7 +31,7 @@ impl AES128Key {
             .map(|c| {
                 c.iter()
                     .enumerate()
-                    .map(|(i, &x)| (x as Word) << (3 - i) * 8)
+                    .map(|(i, &x)| (x as Word) << ((3 - i) * 8))
                     .sum()
             })
             .collect();
@@ -47,7 +47,7 @@ impl AES192Key {
             .map(|c| {
                 c.iter()
                     .enumerate()
-                    .map(|(i, &x)| (x as Word) << (3 - i) * 8)
+                    .map(|(i, &x)| (x as Word) << ((3 - i) * 8))
                     .sum()
             })
             .collect();
@@ -63,7 +63,7 @@ impl AES256Key {
             .map(|c| {
                 c.iter()
                     .enumerate()
-                    .map(|(i, &x)| (x as Word) << (3 - i) * 8)
+                    .map(|(i, &x)| (x as Word) << ((3 - i) * 8))
                     .sum()
             })
             .collect();

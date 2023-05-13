@@ -114,8 +114,7 @@ fn multiple_blocks_aes128_pkcs() {
 
     let encrypted_bytes: Vec<u8> = blocks
         .iter_mut()
-        .map(|b| b.dump_bytes())
-        .flatten()
+        .flat_map(|b| b.dump_bytes())
         .collect();
 
     let expected_bytes = vec![

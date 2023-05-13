@@ -36,8 +36,8 @@ impl From<Block> for InitializationVector {
     }
 }
 
-impl Into<Block> for InitializationVector {
-    fn into(self) -> Block {
-        self.0
+impl From<InitializationVector> for Block {
+    fn from(val: InitializationVector) -> Self {
+        val.0
     }
 }
