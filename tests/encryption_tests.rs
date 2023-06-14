@@ -1,6 +1,6 @@
 use aesculap::block::Block;
 use aesculap::encryption::{encrypt_block, encrypt_bytes};
-use aesculap::init_vec::InitializationVector;
+use aesculap::iv::InitializationVector;
 use aesculap::key::{AES128Key, AES192Key, AES256Key};
 use aesculap::padding::{BytePadding, Pkcs7Padding, ZeroPadding};
 use aesculap::EncryptionMode;
@@ -112,10 +112,7 @@ fn multiple_blocks_aes128_pkcs() {
         encrypt_block(block, &key);
     }
 
-    let encrypted_bytes: Vec<u8> = blocks
-        .iter_mut()
-        .flat_map(|b| b.dump_bytes())
-        .collect();
+    let encrypted_bytes: Vec<u8> = blocks.iter_mut().flat_map(|b| b.dump_bytes()).collect();
 
     let expected_bytes = vec![
         0xea, 0x90, 0xe6, 0xe1, 0xdd, 0xa8, 0x44, 0xd5, 0x24, 0x70, 0x7e, 0x2a, 0x1e, 0x5e, 0xd7,

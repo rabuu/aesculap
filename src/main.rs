@@ -5,7 +5,7 @@ use std::process;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
-use aesculap::init_vec::InitializationVector;
+use aesculap::iv::InitializationVector;
 use aesculap::key::{AES128Key, AES192Key, AES256Key};
 use aesculap::padding::{Pkcs7Padding, ZeroPadding};
 use aesculap::EncryptionMode;

@@ -3,7 +3,7 @@
 //! This module provides functions to decrypt [Block]s and byte slices.
 
 use crate::block::Block;
-use crate::init_vec::InitializationVector;
+use crate::iv::InitializationVector;
 use crate::key::Key;
 use crate::padding::{Padding, ZeroPadding};
 use crate::EncryptionMode;
