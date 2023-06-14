@@ -1,9 +1,9 @@
 use aesculap::block::Block;
 use aesculap::decryption::{decrypt_block, decrypt_bytes};
-use aesculap::iv::InitializationVector;
 use aesculap::key::{AES128Key, AES192Key, AES256Key};
 use aesculap::padding::{BytePadding, Padding, Pkcs7Padding, ZeroPadding};
 use aesculap::EncryptionMode;
+use aesculap::InitializationVector;
 
 #[test]
 fn single_block_aes128_pkcs() {

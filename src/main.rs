@@ -5,10 +5,10 @@ use std::process;
 
 use clap::{Args, Parser, Subcommand, ValueEnum};
 
-use aesculap::iv::InitializationVector;
 use aesculap::key::{AES128Key, AES192Key, AES256Key};
 use aesculap::padding::{Pkcs7Padding, ZeroPadding};
 use aesculap::EncryptionMode;
+use aesculap::InitializationVector;
 
 use aesculap::decryption::decrypt_bytes;
 use aesculap::encryption::encrypt_bytes;

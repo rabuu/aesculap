@@ -1,11 +1,14 @@
 pub mod block;
 pub mod decryption;
 pub mod encryption;
-pub mod iv;
 pub mod key;
 pub mod lookups;
 pub mod padding;
-pub mod util;
+
+mod iv;
+mod util;
+
+pub use iv::InitializationVector;
 
 /// AES encryption mode
 ///
@@ -16,9 +19,9 @@ pub mod util;
 ///   It is fast and easy but quite insecure and therefore not recommended.
 ///
 /// - Cipher Block Chaining (CBC):
-///   An initialization vector (IV) is used and the blocks are chained together.
+///   An [initialization vector (IV)](InitializationVector) is used and the blocks are chained together.
 ///   It is generally more secure.
 pub enum EncryptionMode {
     ECB,
-    CBC(iv::InitializationVector),
+    CBC(InitializationVector),
 }
