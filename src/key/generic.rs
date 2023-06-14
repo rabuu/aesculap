@@ -1,20 +1,30 @@
+//! Generic Rijndael key
+//!
+//! For reference, see the [Wikipedia article](https://en.wikipedia.org/wiki/AES_key_schedule).
+
 use crate::lookups::sbox::*;
 use crate::util;
 
 use super::{Subkey, Word};
 
+/// Round constants
 const RCON: [u8; 11] = [
     0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36,
 ];
 
+/// A generic Rijndael key type with variable size and round number
 #[derive(Debug)]
 pub struct GenericKey<const N: usize, const R: usize>(pub(super) [Word; N]);
 
 impl<const N: usize, const R: usize> GenericKey<N, R> {
+    /// Constructor that takes the original key bytes
     pub fn new(original_key: [Word; N]) -> Self {
         Self(original_key)
     }
 
+    /// AES key schedule
+    ///
+    /// For reference, see the [Wikipedia article](https://en.wikipedia.org/wiki/AES_key_schedule).
     fn key_schedule(&self) -> Vec<Word> {
         let mut words = Vec::with_capacity(R * 4);
 
@@ -51,6 +61,7 @@ impl<const N: usize, const R: usize> GenericKey<N, R> {
         words
     }
 
+    /// Generate a subkey for each round
     pub fn generate_round_keys(&self) -> [Subkey; R] {
         let round_keys: Vec<Subkey> = self
             .key_schedule()

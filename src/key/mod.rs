@@ -1,3 +1,8 @@
+//! Key module
+//!
+//! This module provides a [Key] trait, a [generic Rijndael key](GenericKey),
+//! and the three AES keys ([128](AES128Key), [192](AES192Key), [256](AES256Key)) that implement the trait.
+
 mod aes;
 mod generic;
 
@@ -5,6 +10,7 @@ pub use generic::GenericKey;
 
 pub use aes::{AES128Key, AES192Key, AES256Key};
 
+/// A key that can be used in for AES encryption/decryption
 pub trait Key<const R: usize> {
     fn round_keys(&self) -> [Subkey; R];
 }

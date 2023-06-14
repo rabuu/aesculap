@@ -1,9 +1,16 @@
+//! AES keys
+
 use super::GenericKey;
 use super::Key;
 use super::{Subkey, Word};
 
+/// A Rijndael key consisting of 128 bits (16 bytes)
 pub type AES128Key = GenericKey<4, 11>;
+
+/// A Rijndael key consisting of 192 bits (24 bytes)
 pub type AES192Key = GenericKey<6, 13>;
+
+/// A Rijndael key consisting of 256 bits (32 bytes)
 pub type AES256Key = GenericKey<8, 15>;
 
 impl Key<11> for AES128Key {
