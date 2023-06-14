@@ -1,8 +1,25 @@
+//! Padding module
+//!
+//! This module provides types to pad bytes in different ways to prepare them for encryption.
+//! A [Padding] trait defines a common interface.
+//!
+//! Possible padding modes:
+//! - [PKCS7](Pkcs7Padding) (recommended)
+//! - [Byte padding](BytePadding)
+//! - [Zeroes](ZeroPadding)
+
+/// A trait that defines a common padding interface
 pub trait Padding<const B: usize> {
+    /// Pad the given bytes so they fit in equal-sized chunks
     fn pad(&self, bytes: &[u8]) -> Vec<[u8; B]>;
+
+    /// Undo the padding
     fn unpad(&self, padded_bytes: &[[u8; B]]) -> Vec<u8>;
 }
 
+/// PKCS #7 padding standard
+///
+/// For reference, see the [IBM specification](https://www.ibm.com/docs/en/zos/2.1.0?topic=rules-pkcs-padding-method)
 #[derive(Debug)]
 pub struct Pkcs7Padding;
 
@@ -41,6 +58,7 @@ impl<const B: usize> Padding<B> for Pkcs7Padding {
     }
 }
 
+/// Fill empty chunk space with a given byte
 #[derive(Debug)]
 pub struct BytePadding(pub u8);
 
@@ -70,6 +88,7 @@ impl<const B: usize> Padding<B> for BytePadding {
     }
 }
 
+/// Fill empty chunk space with zeroes
 #[derive(Debug)]
 pub struct ZeroPadding;
 
