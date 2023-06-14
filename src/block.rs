@@ -1,21 +1,41 @@
+//! AES block module
+//!
+//! This module provides the AES [Block] abstraction
+//! that defines how to operate on the 4x4 byte chunks (-> blocks) that AES uses to encrypt data.
+
 use std::ops;
 
 use crate::lookups::{gmul::*, sbox::*};
 use crate::padding::Padding;
 use crate::util;
 
+/// Size of the payload of a [Block] (in bytes)
 pub const BLOCK_SIZE: usize = 16;
 
+/// The AES block abstraction
+///
+/// Internally a block is just 4x4 bytes.
+/// AES defines a set of instructions that operate on this matrix.
+/// These instructions are implemented as methods of this struct.
+///
+/// - [Substitute bytes](Self::sub_bytes) and its [inverse](Self::sub_bytes_inv)
+/// - [Shift rows](Self::shift_rows) and its [inverse](Self::shift_rows_inv)
+/// - [Mix columns](Self::mix_columns) and its [inverse](Self::mix_columns_inv)
+/// - [Add round key](Self::add_round_key)
+///
+/// For reference, see the [Wikipedia article](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard#Description_of_the_ciphers).
 #[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Block {
     state: [[u8; 4]; 4],
 }
 
 impl Block {
+    /// Constructor that takes a 4x4 byte matrix
     pub fn new(state: [[u8; 4]; 4]) -> Self {
         Self { state }
     }
 
+    /// Constructor that takes a continuous 16 byte array
     pub fn from_bytes(bytes: [u8; BLOCK_SIZE]) -> Self {
         let state: [[u8; 4]; 4] = bytes
             .chunks_exact(4)
@@ -27,6 +47,7 @@ impl Block {
         Self { state }
     }
 
+    /// Load a set of [Block]s from a byte slice and a [Padding] mode
     pub fn load<P>(bytes: &[u8], padding: &P) -> Vec<Self>
     where
         P: Padding<16>,
@@ -38,6 +59,7 @@ impl Block {
             .collect()
     }
 
+    /// Dump the inner bytes from the [Block] as continuous byte array
     pub fn dump_bytes(&self) -> [u8; BLOCK_SIZE] {
         let mut dump = [0; 16];
 
@@ -52,18 +74,33 @@ impl Block {
         dump
     }
 
+    /// Substitute bytes
+    ///
+    /// Substitutes every single byte using the AES [SBOX].
+    ///
+    /// For reference, see the [Wikipedia article](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard#The_SubBytes_step).
     pub fn sub_bytes(&mut self) {
         for col in &mut self.state {
             *col = util::apply_sbox(*col, SBOX);
         }
     }
 
+    /// Substitute bytes (inverse)
+    ///
+    /// Substitutes every single byte using the AES [INVERSE_SBOX].
+    ///
+    /// For reference, see the [Wikipedia article](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard#The_SubBytes_step).
     pub fn sub_bytes_inv(&mut self) {
         for col in &mut self.state {
             *col = util::apply_sbox(*col, INVERSE_SBOX);
         }
     }
 
+    /// Shift rows
+    ///
+    /// Cyclically shift the bytes in each row by a certain offset.
+    ///
+    /// For reference, see the [Wikipedia article](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard#The_ShiftRows_step).
     pub fn shift_rows(&mut self) {
         let mut transposed = util::transpose_array2d(&self.state);
         for (i, row) in transposed.iter_mut().enumerate() {
@@ -73,6 +110,11 @@ impl Block {
         self.state = util::transpose_array2d(&transposed);
     }
 
+    /// Shift rows (inverse)
+    ///
+    /// Cyclically shift back the bytes in each row by a certain offset.
+    ///
+    /// For reference, see the [Wikipedia article](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard#The_ShiftRows_step).
     pub fn shift_rows_inv(&mut self) {
         let mut transposed = util::transpose_array2d(&self.state);
         for (i, row) in transposed.iter_mut().enumerate() {
@@ -82,6 +124,11 @@ impl Block {
         self.state = util::transpose_array2d(&transposed);
     }
 
+    /// Mix columns
+    ///
+    /// Combine the four bytes of each column using an invertible linear transformation.
+    ///
+    /// For reference, see the [Wikipedia article](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard#The_MixColumns_step).
     pub fn mix_columns(&mut self) {
         let copy = self.state;
 
@@ -101,6 +148,11 @@ impl Block {
         }
     }
 
+    /// Mix columns (inverse)
+    ///
+    /// Invert the [mix columns step](Self::mix_columns).
+    ///
+    /// For reference, see the [Wikipedia article](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard#The_MixColumns_step).
     pub fn mix_columns_inv(&mut self) {
         let copy = self.state;
 
@@ -140,6 +192,9 @@ impl Block {
         }
     }
 
+    /// Combine the round's subkey with the state
+    ///
+    /// For reference, see the [Wikipedia article](https://en.wikipedia.org/wiki/Advanced_Encryption_Standard#The_AddRoundKey).
     pub fn add_round_key(&mut self, round_key: u128) {
         for (i, col) in self.state.iter_mut().enumerate() {
             for (j, byte) in col.iter_mut().enumerate() {
