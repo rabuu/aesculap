@@ -25,7 +25,7 @@ impl InitializationVector {
     }
 
     /// Get the inner bytes
-    pub fn into_bytes(&self) -> [u8; 16] {
+    pub fn as_bytes(&self) -> [u8; 16] {
         self.0.dump_bytes()
     }
 }

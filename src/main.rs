@@ -188,7 +188,7 @@ fn main() {
                         });
 
                         let random_iv = InitializationVector::random();
-                        iv_file.write_all(&random_iv.into_bytes()).unwrap();
+                        iv_file.write_all(&random_iv.as_bytes()).unwrap();
 
                         EncryptionMode::CBC(random_iv)
                     } else {
