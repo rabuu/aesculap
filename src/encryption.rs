@@ -1,9 +1,14 @@
+//! Encryption module
+//!
+//! This module provides functions to encrypt [Block]s and bytes slices.
+
 use crate::block::Block;
 use crate::init_vec::InitializationVector;
 use crate::key::Key;
 use crate::padding::Padding;
 use crate::EncryptionMode;
 
+/// Encrypt a [Block] using a [Key] type
 pub fn encrypt_block<const R: usize, K>(block: &mut Block, key: &K)
 where
     K: Key<R>,
@@ -31,6 +36,13 @@ where
     }
 }
 
+/// Encrypt a byte slice using a [Key] type
+///
+/// # Parameters
+/// - `bytes`: byte slice to encrypt
+/// - `key`: [Key] used for encryption
+/// - `padding`: how the decrypted bytes should be padded
+/// - `mode`: [EncryptionMode] that is used for encryption
 pub fn encrypt_bytes<const R: usize, K, P>(
     bytes: &[u8],
     key: &K,
@@ -48,12 +60,10 @@ where
         EncryptionMode::CBC(iv) => cbc(&mut blocks, key, iv),
     }
 
-    blocks
-        .into_iter()
-        .flat_map(|b| b.dump_bytes())
-        .collect()
+    blocks.into_iter().flat_map(|b| b.dump_bytes()).collect()
 }
 
+/// Implementation of [ECB](EncryptionMode) encryption
 fn ecb<const R: usize, K>(blocks: &mut [Block], key: &K)
 where
     K: Key<R>,
@@ -63,6 +73,7 @@ where
     }
 }
 
+/// Implementation of [CBC](EncryptionMode) encryption
 fn cbc<const R: usize, K>(blocks: &mut [Block], key: &K, iv: InitializationVector)
 where
     K: Key<R>,

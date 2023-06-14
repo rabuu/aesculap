@@ -1,9 +1,14 @@
+//! Decryption module
+//!
+//! This module provides functions to decrypt [Block]s and byte slices.
+
 use crate::block::Block;
 use crate::init_vec::InitializationVector;
 use crate::key::Key;
 use crate::padding::{Padding, ZeroPadding};
 use crate::EncryptionMode;
 
+/// Decrypt a [Block] using a [Key] type
 pub fn decrypt_block<const R: usize, K>(block: &mut Block, key: &K)
 where
     K: Key<R>,
@@ -31,6 +36,16 @@ where
     }
 }
 
+/// Decrypt a byte slice using a [Key] type
+///
+/// # Parameters
+/// - `bytes`: byte slice to decrypt
+/// - `key`: [Key] used for decryption
+/// - `padding`: how the decrypted bytes should be unpadded
+/// - `mode`: [EncryptionMode] that was used for encryption
+///
+/// # Return value
+/// The decryption may fail if the number of encrypted bytes is not a multiple of `16`.
 pub fn decrypt_bytes<const R: usize, K, P>(
     bytes: &[u8],
     key: &K,
@@ -61,6 +76,7 @@ where
     }
 }
 
+/// Implementation of [ECB](EncryptionMode) decryption
 fn ecb<const R: usize, K>(blocks: &mut [Block], key: &K)
 where
     K: Key<R>,
@@ -70,6 +86,7 @@ where
     }
 }
 
+/// Implementation of [CBC](EncryptionMode) decryption
 fn cbc<const R: usize, K>(blocks: &mut [Block], key: &K, iv: InitializationVector)
 where
     K: Key<R>,
