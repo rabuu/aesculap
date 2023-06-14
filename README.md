@@ -5,7 +5,7 @@ Implementation of the Advanced Encryption Standard (AES) algorithm.
 `aesculap` is just a little hobbyist project for learning purposes.
 
 The binary provides a little CLI tool to encrypt/decrypt files.
-The library is not intended to be used in external code.
+The library provides stuff to work with AES but is not really intended to be used in external code.
 
 ## CLI usage
 
