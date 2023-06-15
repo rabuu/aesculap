@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{self, BufReader, Read, Write};
 use std::path::PathBuf;
 use std::process;
 
@@ -35,8 +35,8 @@ enum Command {
 
         /// Padding is required to divide the data into even sized blocks
         #[arg(long, short)]
-        #[arg(value_enum, default_value_t = Padding::Pkcs7)]
-        padding: Padding,
+        #[arg(value_enum, default_value_t = PaddingOption::Pkcs7)]
+        padding: PaddingOption,
 
         #[command(flatten)]
         iv: Option<Iv>,
@@ -59,8 +59,8 @@ enum Command {
         mode: Mode,
 
         #[arg(long, short)]
-        #[arg(value_enum, default_value_t = Padding::Pkcs7)]
-        padding: Padding,
+        #[arg(value_enum, default_value_t = PaddingOption::Pkcs7)]
+        padding: PaddingOption,
 
         /// In CBC mode an IV with a size of 128 bits (16 bytes) is required
         #[arg(long)]
@@ -94,7 +94,7 @@ struct Mode {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, ValueEnum, Debug)]
-enum Padding {
+enum PaddingOption {
     /// Padding is done according to PKCS #7 (recommended)
     Pkcs7,
 
@@ -156,66 +156,50 @@ fn main() {
             input,
             output,
         } => {
-            let mut key_file = File::open(&key_file).unwrap_or_else(|err| {
-                eprintln!("Error: {:?}: {}", key_file, err);
-                process::exit(1);
-            });
+            let key = read_key(key_file).unwrap();
 
-            let mut key_bytes: Vec<u8> = Vec::new();
-            key_file.read_to_end(&mut key_bytes).unwrap();
+            let mode: EncryptionMode = match (mode.ecb, mode.cbc) {
+                (true, false) => EncryptionMode::ECB,
+                (false, true) => {
+                    let iv = iv.unwrap();
 
-            let mode: EncryptionMode = if mode.ecb {
-                EncryptionMode::ECB
-            } else if mode.cbc {
-                let iv = iv.expect("CBC mode but no IV");
-                if let Some(iv_file) = iv.iv_file {
-                    let mut iv_file = File::open(&iv_file).unwrap_or_else(|err| {
-                        eprintln!("Error: {:?}: {}", iv_file, err);
-                        process::exit(1);
-                    });
+                    if let Some(iv_file) = iv.iv_file {
+                        let iv = read_iv(iv_file).unwrap();
+                        let iv = InitializationVector::from_bytes(iv);
 
-                    let mut buf = [0; 16];
-                    iv_file.read_exact(&mut buf).unwrap();
+                        EncryptionMode::CBC(iv)
+                    } else if let Some(iv_file) = iv.random_iv {
+                        if cfg!(feature = "rand") {
+                            let iv = InitializationVector::random();
+                            write_iv(iv_file, &iv).unwrap();
 
-                    let iv = InitializationVector::from_bytes(buf);
-
-                    EncryptionMode::CBC(iv)
-                } else if let Some(iv_file) = iv.random_iv {
-                    if cfg!(feature = "rand") {
-                        let mut iv_file = File::create(&iv_file).unwrap_or_else(|err| {
-                            eprintln!("Error: {:?}: {}", iv_file, err);
-                            process::exit(1);
-                        });
-
-                        let random_iv = InitializationVector::random();
-                        iv_file.write_all(&random_iv.as_bytes()).unwrap();
-
-                        EncryptionMode::CBC(random_iv)
+                            EncryptionMode::CBC(iv)
+                        } else {
+                            panic!("Feature 'rand' not enabled");
+                        }
                     } else {
-                        panic!("Feature 'rand' not enabled");
+                        panic!("Unvalid IV state");
                     }
-                } else {
-                    panic!("IV neither given nor random");
                 }
-            } else {
-                panic!("Mode neither ECB nor CBC");
+                _ => panic!("Unvalid encryption mode"),
             };
 
             let mut plaintext: Vec<u8> = Vec::new();
             if let Some(input_file) = input.input_file {
-                let mut input_file = File::open(&input_file).unwrap_or_else(|err| {
+                let input_file = File::open(&input_file).unwrap_or_else(|err| {
                     eprintln!("Error: {:?}: {}", input_file, err);
                     process::exit(1);
                 });
 
-                input_file.read_to_end(&mut plaintext).unwrap();
+                let mut reader = BufReader::new(input_file);
+                reader.read_to_end(&mut plaintext).unwrap();
             } else if input.stdin {
                 todo!()
             } else {
                 panic!("Neither input file nor STDIN");
             };
 
-            if padding == Padding::None && plaintext.len() % 16 != 0 {
+            if padding == PaddingOption::None && plaintext.len() % 16 != 0 {
                 eprintln!(
                     "Error: Without padding the number of input bytes has to be divisible by 16"
                 );
@@ -235,30 +219,36 @@ fn main() {
                 panic!("Neither output file nor STDOUT");
             };
 
-            let output_bytes = match key_bytes.len() {
+            let output_bytes = match key.len() {
                 16 => {
-                    let key = AES128Key::from_bytes(key_bytes.try_into().unwrap());
+                    let key = AES128Key::from_bytes(key.try_into().unwrap());
                     match padding {
-                        Padding::Pkcs7 => encrypt_bytes(&plaintext, &key, &Pkcs7Padding, mode),
-                        Padding::Zero | Padding::None => {
+                        PaddingOption::Pkcs7 => {
+                            encrypt_bytes(&plaintext, &key, &Pkcs7Padding, mode)
+                        }
+                        PaddingOption::Zero | PaddingOption::None => {
                             encrypt_bytes(&plaintext, &key, &ZeroPadding, mode)
                         }
                     }
                 }
                 24 => {
-                    let key = AES192Key::from_bytes(key_bytes.try_into().unwrap());
+                    let key = AES192Key::from_bytes(key.try_into().unwrap());
                     match padding {
-                        Padding::Pkcs7 => encrypt_bytes(&plaintext, &key, &Pkcs7Padding, mode),
-                        Padding::Zero | Padding::None => {
+                        PaddingOption::Pkcs7 => {
+                            encrypt_bytes(&plaintext, &key, &Pkcs7Padding, mode)
+                        }
+                        PaddingOption::Zero | PaddingOption::None => {
                             encrypt_bytes(&plaintext, &key, &ZeroPadding, mode)
                         }
                     }
                 }
                 32 => {
-                    let key = AES256Key::from_bytes(key_bytes.try_into().unwrap());
+                    let key = AES256Key::from_bytes(key.try_into().unwrap());
                     match padding {
-                        Padding::Pkcs7 => encrypt_bytes(&plaintext, &key, &Pkcs7Padding, mode),
-                        Padding::Zero | Padding::None => {
+                        PaddingOption::Pkcs7 => {
+                            encrypt_bytes(&plaintext, &key, &Pkcs7Padding, mode)
+                        }
+                        PaddingOption::Zero | PaddingOption::None => {
                             encrypt_bytes(&plaintext, &key, &ZeroPadding, mode)
                         }
                     }
@@ -279,44 +269,28 @@ fn main() {
             input,
             output,
         } => {
-            let mut key_file = File::open(&key_file).unwrap_or_else(|err| {
-                eprintln!("Error: {:?}: {}", key_file, err);
-                process::exit(1);
-            });
+            let key = read_key(key_file).unwrap();
 
-            let mut key_bytes: Vec<u8> = Vec::new();
-            key_file.read_to_end(&mut key_bytes).unwrap();
-
-            let mode: EncryptionMode = if mode.ecb {
-                EncryptionMode::ECB
-            } else if mode.cbc {
-                if let Some(iv_file) = iv_file {
-                    let mut iv_file = File::open(&iv_file).unwrap_or_else(|err| {
-                        eprintln!("Error: {:?}: {}", iv_file, err);
-                        process::exit(1);
-                    });
-
-                    let mut buf = [0; 16];
-                    iv_file.read_exact(&mut buf).unwrap();
-
-                    let iv = InitializationVector::from_bytes(buf);
+            let mode: EncryptionMode = match (mode.ecb, mode.cbc) {
+                (true, false) => EncryptionMode::ECB,
+                (false, true) => {
+                    let iv = read_iv(iv_file.unwrap()).unwrap();
+                    let iv = InitializationVector::from_bytes(iv);
 
                     EncryptionMode::CBC(iv)
-                } else {
-                    panic!("CBC mode but no iv_file");
                 }
-            } else {
-                panic!("Mode neither ECB nor CBC");
+                _ => panic!("Unvalid encryption mode"),
             };
 
             let mut ciphertext: Vec<u8> = Vec::new();
             if let Some(input_file) = input.input_file {
-                let mut input_file = File::open(&input_file).unwrap_or_else(|err| {
+                let input_file = File::open(&input_file).unwrap_or_else(|err| {
                     eprintln!("Error: {:?}: {}", input_file, err);
                     process::exit(1);
                 });
 
-                input_file.read_to_end(&mut ciphertext).unwrap();
+                let mut reader = BufReader::new(input_file);
+                reader.read_to_end(&mut ciphertext).unwrap();
             } else if input.stdin {
                 todo!()
             } else {
@@ -336,45 +310,45 @@ fn main() {
                 panic!("Neither output file nor STDOUT");
             };
 
-            let output_bytes = match key_bytes.len() {
+            let output_bytes = match key.len() {
                 16 => {
-                    let key = AES128Key::from_bytes(key_bytes.try_into().unwrap());
+                    let key = AES128Key::from_bytes(key.try_into().unwrap());
                     match padding {
-                        Padding::Pkcs7 => {
+                        PaddingOption::Pkcs7 => {
                             decrypt_bytes(&ciphertext, &key, Some(Pkcs7Padding), mode).unwrap()
                         }
-                        Padding::Zero => {
+                        PaddingOption::Zero => {
                             decrypt_bytes(&ciphertext, &key, Some(ZeroPadding), mode).unwrap()
                         }
-                        Padding::None => {
+                        PaddingOption::None => {
                             decrypt_bytes(&ciphertext, &key, None::<ZeroPadding>, mode).unwrap()
                         }
                     }
                 }
                 24 => {
-                    let key = AES192Key::from_bytes(key_bytes.try_into().unwrap());
+                    let key = AES192Key::from_bytes(key.try_into().unwrap());
                     match padding {
-                        Padding::Pkcs7 => {
+                        PaddingOption::Pkcs7 => {
                             decrypt_bytes(&ciphertext, &key, Some(Pkcs7Padding), mode).unwrap()
                         }
-                        Padding::Zero => {
+                        PaddingOption::Zero => {
                             decrypt_bytes(&ciphertext, &key, Some(ZeroPadding), mode).unwrap()
                         }
-                        Padding::None => {
+                        PaddingOption::None => {
                             decrypt_bytes(&ciphertext, &key, None::<ZeroPadding>, mode).unwrap()
                         }
                     }
                 }
                 32 => {
-                    let key = AES256Key::from_bytes(key_bytes.try_into().unwrap());
+                    let key = AES256Key::from_bytes(key.try_into().unwrap());
                     match padding {
-                        Padding::Pkcs7 => {
+                        PaddingOption::Pkcs7 => {
                             decrypt_bytes(&ciphertext, &key, Some(Pkcs7Padding), mode).unwrap()
                         }
-                        Padding::Zero => {
+                        PaddingOption::Zero => {
                             decrypt_bytes(&ciphertext, &key, Some(ZeroPadding), mode).unwrap()
                         }
-                        Padding::None => {
+                        PaddingOption::None => {
                             decrypt_bytes(&ciphertext, &key, None::<ZeroPadding>, mode).unwrap()
                         }
                     }
@@ -388,4 +362,46 @@ fn main() {
             output.write_all(&output_bytes).unwrap();
         }
     }
+}
+
+fn read_key(path: PathBuf) -> io::Result<Vec<u8>> {
+    let mut f = File::open(path)?;
+    let meta = f.metadata()?;
+
+    match meta.len() {
+        16 | 24 | 32 => (),
+        _ => {
+            eprintln!(
+                "Error: The key must have a size of 128, 192 or 256 bits (16, 24 or 32 bytes)"
+            );
+            process::exit(1);
+        }
+    }
+
+    let mut key = Vec::with_capacity(meta.len() as usize);
+    f.read_to_end(&mut key)?;
+
+    Ok(key)
+}
+
+fn read_iv(path: PathBuf) -> io::Result<[u8; 16]> {
+    let mut f = File::open(path)?;
+    let meta = f.metadata()?;
+
+    if meta.len() != 16 {
+        eprintln!("Error: The IV must have a size of 128 bits (16 bytes)");
+        process::exit(1);
+    }
+
+    let mut iv: [u8; 16] = Default::default();
+    f.read_exact(&mut iv)?;
+
+    Ok(iv)
+}
+
+fn write_iv(path: PathBuf, iv: &InitializationVector) -> io::Result<()> {
+    let mut f = File::create(path)?;
+    f.write_all(&iv.as_bytes())?;
+
+    Ok(())
 }
