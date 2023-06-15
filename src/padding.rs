@@ -52,7 +52,7 @@ impl<const B: usize> Padding<B> for Pkcs7Padding {
 
         let mut bytes: Vec<u8> = padded_bytes.iter().flatten().copied().collect();
         let last_byte = *bytes.last().unwrap();
-        bytes.truncate((bytes.len() as u8 - last_byte) as usize);
+        bytes.truncate(bytes.len() - last_byte as usize);
 
         bytes
     }
