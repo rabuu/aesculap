@@ -25,7 +25,7 @@ pub struct Pkcs7Padding;
 
 impl<const B: usize> Padding<B> for Pkcs7Padding {
     fn pad(&self, bytes: &[u8]) -> Vec<[u8; B]> {
-        let mut blocks: Vec<[u8; B]> = bytes
+        let mut chunks: Vec<[u8; B]> = bytes
             .chunks_exact(B)
             .map(|c| c.try_into().unwrap())
             .collect();
@@ -33,16 +33,16 @@ impl<const B: usize> Padding<B> for Pkcs7Padding {
         let remainder = bytes.chunks_exact(B).remainder();
         let missing_bytes = B - remainder.len();
 
-        let last_block: [u8; B] = remainder
+        let last_chunk: [u8; B] = remainder
             .iter()
             .chain(vec![missing_bytes as u8; missing_bytes].iter())
             .copied()
             .collect::<Vec<u8>>()
             .try_into()
             .unwrap();
-        blocks.push(last_block);
+        chunks.push(last_chunk);
 
-        blocks
+        chunks
     }
 
     fn unpad(&self, padded_bytes: &[[u8; B]]) -> Vec<u8> {
