@@ -186,7 +186,7 @@ fn main() {
 
             let input = match (input.input_file, input.stdin) {
                 (Some(path), false) => read_file(path).unwrap(),
-                (None, true) => todo!(),
+                (None, true) => read_stdin().unwrap(),
                 _ => panic!("Invalid input"),
             };
 
@@ -202,7 +202,7 @@ fn main() {
                     let f = File::create(path).unwrap();
                     Box::new(f)
                 }
-                (None, true) => todo!(),
+                (None, true) => Box::new(io::stdout().lock()),
                 _ => panic!("Invalid output"),
             };
 
@@ -250,7 +250,7 @@ fn main() {
 
             let input = match (input.input_file, input.stdin) {
                 (Some(path), false) => read_file(path).unwrap(),
-                (None, true) => todo!(),
+                (None, true) => read_stdin().unwrap(),
                 _ => panic!("Invalid input"),
             };
 
@@ -259,7 +259,7 @@ fn main() {
                     let f = File::create(path).unwrap();
                     Box::new(f)
                 }
-                (None, true) => todo!(),
+                (None, true) => Box::new(io::stdout().lock()),
                 _ => panic!("Invalid output"),
             };
 
@@ -330,6 +330,18 @@ fn read_file(path: PathBuf) -> io::Result<Vec<u8>> {
     f.read_to_end(&mut file)?;
 
     Ok(file)
+}
+
+fn read_stdin() -> io::Result<Vec<u8>> {
+    let stdin = io::stdin();
+    let mut buffer = Vec::new();
+
+    {
+        let mut stdin = stdin.lock();
+        stdin.read_to_end(&mut buffer)?;
+    }
+
+    Ok(buffer)
 }
 
 fn write_iv(path: PathBuf, iv: &InitializationVector) -> io::Result<()> {
