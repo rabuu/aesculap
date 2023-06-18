@@ -13,6 +13,8 @@ pub fn decrypt_block<const R: usize, K>(block: &mut Block, key: &K)
 where
     K: Key<R>,
 {
+    log::trace!("Decrypt a block");
+
     let round_keys = key.round_keys();
     debug_assert_eq!(round_keys.len(), R);
 
@@ -56,8 +58,12 @@ where
     K: Key<R>,
     P: Padding<16>,
 {
+    log::trace!("Decrypt bytes");
+
     if bytes.len() % 16 != 0 {
-        return Err("Number of bytes not divisible by 16");
+        let err = "Number of bytes not divisible by 16";
+        log::error!("{}", err);
+        return Err(err);
     }
 
     let mut blocks = Block::load(bytes, &ZeroPadding);
@@ -81,6 +87,8 @@ fn ecb<const R: usize, K>(blocks: &mut [Block], key: &K)
 where
     K: Key<R>,
 {
+    log::trace!("ECB decryption");
+
     for block in blocks {
         decrypt_block(block, key);
     }
@@ -91,6 +99,8 @@ fn cbc<const R: usize, K>(blocks: &mut [Block], key: &K, iv: InitializationVecto
 where
     K: Key<R>,
 {
+    log::trace!("CBC decryption");
+
     let mut prev: Block = iv.into();
     for block in blocks {
         let copy = *block;

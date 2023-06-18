@@ -13,6 +13,8 @@ pub fn encrypt_block<const R: usize, K>(block: &mut Block, key: &K)
 where
     K: Key<R>,
 {
+    log::trace!("Encrypt a block");
+
     let round_keys = key.round_keys();
     debug_assert_eq!(round_keys.len(), R);
 
@@ -53,6 +55,8 @@ where
     K: Key<R>,
     P: Padding<16>,
 {
+    log::trace!("Encrypt bytes");
+
     let mut blocks = Block::load(bytes, padding);
 
     match mode {
@@ -68,6 +72,8 @@ fn ecb<const R: usize, K>(blocks: &mut [Block], key: &K)
 where
     K: Key<R>,
 {
+    log::trace!("ECB encryption");
+
     for block in blocks {
         encrypt_block(block, key);
     }
@@ -78,6 +84,8 @@ fn cbc<const R: usize, K>(blocks: &mut [Block], key: &K, iv: InitializationVecto
 where
     K: Key<R>,
 {
+    log::trace!("CBC encryption");
+
     let mut prev: Block = iv.into();
     for block in blocks {
         *block ^= prev;

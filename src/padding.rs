@@ -25,6 +25,8 @@ pub struct Pkcs7Padding;
 
 impl<const B: usize> Padding<B> for Pkcs7Padding {
     fn pad(&self, bytes: &[u8]) -> Vec<[u8; B]> {
+        log::trace!("Pad using PKCS #7");
+
         let mut chunks: Vec<[u8; B]> = bytes
             .chunks_exact(B)
             .map(|c| c.try_into().unwrap())
@@ -46,6 +48,8 @@ impl<const B: usize> Padding<B> for Pkcs7Padding {
     }
 
     fn unpad(&self, padded_bytes: &[[u8; B]]) -> Vec<u8> {
+        log::trace!("Unpad using PKCS #7");
+
         if padded_bytes.is_empty() {
             return vec![];
         }
@@ -64,6 +68,8 @@ pub struct BytePadding(pub u8);
 
 impl<const B: usize> Padding<B> for BytePadding {
     fn pad(&self, bytes: &[u8]) -> Vec<[u8; B]> {
+        log::trace!("Pad with byte (0x{:x})", self.0);
+
         let missing_bytes = bytes.len() % B;
 
         [bytes, &vec![self.0; missing_bytes]]
@@ -74,6 +80,8 @@ impl<const B: usize> Padding<B> for BytePadding {
     }
 
     fn unpad(&self, padded_bytes: &[[u8; B]]) -> Vec<u8> {
+        log::trace!("Unpad with byte (0x{:x})", self.0);
+
         if padded_bytes.is_empty() {
             return vec![];
         }
@@ -94,6 +102,8 @@ pub struct ZeroPadding;
 
 impl<const B: usize> Padding<B> for ZeroPadding {
     fn pad(&self, bytes: &[u8]) -> Vec<[u8; B]> {
+        log::trace!("Pad with zeroes");
+
         let missing_bytes = bytes.len() % B;
 
         [bytes, &vec![0; missing_bytes]]
@@ -104,6 +114,8 @@ impl<const B: usize> Padding<B> for ZeroPadding {
     }
 
     fn unpad(&self, padded_bytes: &[[u8; B]]) -> Vec<u8> {
+        log::trace!("Unpad with zeroes");
+
         if padded_bytes.is_empty() {
             return vec![];
         }
