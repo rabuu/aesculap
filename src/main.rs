@@ -145,11 +145,17 @@ struct Output {
 }
 
 fn main() {
-    env_logger::init();
+    env_logger::builder().format_timestamp(None).init();
 
     let cli = Cli::parse();
+    run_cmd(cli.cmd).unwrap_or_else(|err| {
+        log::error!("{err}");
+        process::exit(1);
+    });
+}
 
-    match cli.cmd {
+fn run_cmd(cmd: Command) -> io::Result<()> {
+    match cmd {
         Command::Encrypt {
             key_file,
             mode,
@@ -158,10 +164,7 @@ fn main() {
             input,
             output,
         } => {
-            let key = read_key(key_file).unwrap_or_else(|err| {
-                log::error!("{err}");
-                process::exit(1);
-            });
+            let key = read_key(key_file)?;
 
             let mode: EncryptionMode = match (mode.ecb, mode.cbc) {
                 (true, false) => EncryptionMode::ECB,
@@ -169,21 +172,13 @@ fn main() {
                     let iv = iv.unwrap();
 
                     if let Some(iv_file) = iv.iv_file {
-                        let iv = read_iv(iv_file).unwrap_or_else(|err| {
-                            log::error!("{err}");
-                            process::exit(1)
-                        });
+                        let iv = read_iv(iv_file)?;
                         let iv = InitializationVector::from_bytes(iv);
-
                         EncryptionMode::CBC(iv)
                     } else if let Some(iv_file) = iv.random_iv {
                         if cfg!(feature = "rand") {
                             let iv = InitializationVector::random();
-                            write_iv(iv_file, &iv).unwrap_or_else(|err| {
-                                log::error!("{err}");
-                                process::exit(1)
-                            });
-
+                            write_iv(iv_file, &iv)?;
                             EncryptionMode::CBC(iv)
                         } else {
                             panic!("Feature 'rand' not enabled");
@@ -199,11 +194,7 @@ fn main() {
                 (Some(path), false) => read_file(path),
                 (None, true) => read_stdin(),
                 _ => panic!("Invalid input"),
-            }
-            .unwrap_or_else(|err| {
-                log::error!("{err}");
-                process::exit(1);
-            });
+            }?;
 
             if padding == PaddingOption::None && input.len() % 16 != 0 {
                 log::error!("Without padding the number of input bytes has to be divisible by 16");
@@ -212,11 +203,7 @@ fn main() {
 
             let mut output: Box<dyn Write> = match (output.output_file, output.stdout) {
                 (Some(path), false) => {
-                    let f = File::create(path).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        process::exit(1);
-                    });
-
+                    let f = File::create(path)?;
                     Box::new(f)
                 }
                 (None, true) => Box::new(io::stdout().lock()),
@@ -244,10 +231,7 @@ fn main() {
                 }
             };
 
-            output.write_all(&output_bytes).unwrap_or_else(|err| {
-                log::error!("{err}");
-                process::exit(1);
-            });
+            output.write_all(&output_bytes)?;
         }
         Command::Decrypt {
             key_file,
@@ -257,19 +241,12 @@ fn main() {
             input,
             output,
         } => {
-            let key = read_key(key_file).unwrap_or_else(|err| {
-                log::error!("{err}");
-                process::exit(1);
-            });
+            let key = read_key(key_file)?;
 
             let mode: EncryptionMode = match (mode.ecb, mode.cbc) {
                 (true, false) => EncryptionMode::ECB,
                 (false, true) => {
-                    let iv = read_iv(iv_file.unwrap()).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        process::exit(1);
-                    });
-
+                    let iv = read_iv(iv_file.unwrap())?;
                     let iv = InitializationVector::from_bytes(iv);
                     EncryptionMode::CBC(iv)
                 }
@@ -280,18 +257,11 @@ fn main() {
                 (Some(path), false) => read_file(path),
                 (None, true) => read_stdin(),
                 _ => panic!("Invalid input"),
-            }
-            .unwrap_or_else(|err| {
-                log::error!("{err}");
-                process::exit(1);
-            });
+            }?;
 
             let mut output: Box<dyn Write> = match (output.output_file, output.stdout) {
                 (Some(path), false) => {
-                    let f = File::create(path).unwrap_or_else(|err| {
-                        log::error!("{err}");
-                        process::exit(1);
-                    });
+                    let f = File::create(path)?;
                     Box::new(f)
                 }
                 (None, true) => Box::new(io::stdout().lock()),
@@ -319,12 +289,11 @@ fn main() {
                 }
             };
 
-            output.write_all(&output_bytes).unwrap_or_else(|err| {
-                log::error!("{err}");
-                process::exit(1);
-            });
+            output.write_all(&output_bytes)?;
         }
     }
+
+    Ok(())
 }
 
 fn read_key(path: PathBuf) -> io::Result<Vec<u8>> {
