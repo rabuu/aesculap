@@ -158,7 +158,10 @@ fn main() {
             input,
             output,
         } => {
-            let key = read_key(key_file).unwrap();
+            let key = read_key(key_file).unwrap_or_else(|err| {
+                log::error!("{err}");
+                process::exit(1);
+            });
 
             let mode: EncryptionMode = match (mode.ecb, mode.cbc) {
                 (true, false) => EncryptionMode::ECB,
@@ -166,14 +169,20 @@ fn main() {
                     let iv = iv.unwrap();
 
                     if let Some(iv_file) = iv.iv_file {
-                        let iv = read_iv(iv_file).unwrap();
+                        let iv = read_iv(iv_file).unwrap_or_else(|err| {
+                            log::error!("{err}");
+                            process::exit(1)
+                        });
                         let iv = InitializationVector::from_bytes(iv);
 
                         EncryptionMode::CBC(iv)
                     } else if let Some(iv_file) = iv.random_iv {
                         if cfg!(feature = "rand") {
                             let iv = InitializationVector::random();
-                            write_iv(iv_file, &iv).unwrap();
+                            write_iv(iv_file, &iv).unwrap_or_else(|err| {
+                                log::error!("{err}");
+                                process::exit(1)
+                            });
 
                             EncryptionMode::CBC(iv)
                         } else {
@@ -187,21 +196,27 @@ fn main() {
             };
 
             let input = match (input.input_file, input.stdin) {
-                (Some(path), false) => read_file(path).unwrap(),
-                (None, true) => read_stdin().unwrap(),
+                (Some(path), false) => read_file(path),
+                (None, true) => read_stdin(),
                 _ => panic!("Invalid input"),
-            };
+            }
+            .unwrap_or_else(|err| {
+                log::error!("{err}");
+                process::exit(1);
+            });
 
             if padding == PaddingOption::None && input.len() % 16 != 0 {
-                eprintln!(
-                    "Error: Without padding the number of input bytes has to be divisible by 16"
-                );
+                log::error!("Without padding the number of input bytes has to be divisible by 16");
                 process::exit(1);
             }
 
             let mut output: Box<dyn Write> = match (output.output_file, output.stdout) {
                 (Some(path), false) => {
-                    let f = File::create(path).unwrap();
+                    let f = File::create(path).unwrap_or_else(|err| {
+                        log::error!("{err}");
+                        process::exit(1);
+                    });
+
                     Box::new(f)
                 }
                 (None, true) => Box::new(io::stdout().lock()),
@@ -222,12 +237,17 @@ fn main() {
                     encrypt(&input, &key, padding, mode)
                 }
                 _ => {
-                    eprintln!("Error: Key file must have a size of 128, 192 or 256 bits (16, 24, or 32 bytes)");
+                    log::error!(
+                        "Key file must have a size of 128, 192 or 256 bits (16, 24, or 32 bytes)"
+                    );
                     process::exit(1);
                 }
             };
 
-            output.write_all(&output_bytes).unwrap();
+            output.write_all(&output_bytes).unwrap_or_else(|err| {
+                log::error!("{err}");
+                process::exit(1);
+            });
         }
         Command::Decrypt {
             key_file,
@@ -237,28 +257,41 @@ fn main() {
             input,
             output,
         } => {
-            let key = read_key(key_file).unwrap();
+            let key = read_key(key_file).unwrap_or_else(|err| {
+                log::error!("{err}");
+                process::exit(1);
+            });
 
             let mode: EncryptionMode = match (mode.ecb, mode.cbc) {
                 (true, false) => EncryptionMode::ECB,
                 (false, true) => {
-                    let iv = read_iv(iv_file.unwrap()).unwrap();
-                    let iv = InitializationVector::from_bytes(iv);
+                    let iv = read_iv(iv_file.unwrap()).unwrap_or_else(|err| {
+                        log::error!("{err}");
+                        process::exit(1);
+                    });
 
+                    let iv = InitializationVector::from_bytes(iv);
                     EncryptionMode::CBC(iv)
                 }
                 _ => panic!("Invalid encryption mode"),
             };
 
             let input = match (input.input_file, input.stdin) {
-                (Some(path), false) => read_file(path).unwrap(),
-                (None, true) => read_stdin().unwrap(),
+                (Some(path), false) => read_file(path),
+                (None, true) => read_stdin(),
                 _ => panic!("Invalid input"),
-            };
+            }
+            .unwrap_or_else(|err| {
+                log::error!("{err}");
+                process::exit(1);
+            });
 
             let mut output: Box<dyn Write> = match (output.output_file, output.stdout) {
                 (Some(path), false) => {
-                    let f = File::create(path).unwrap();
+                    let f = File::create(path).unwrap_or_else(|err| {
+                        log::error!("{err}");
+                        process::exit(1);
+                    });
                     Box::new(f)
                 }
                 (None, true) => Box::new(io::stdout().lock()),
@@ -279,12 +312,17 @@ fn main() {
                     decrypt(&input, &key, padding, mode)
                 }
                 _ => {
-                    eprintln!("Error: Key file must have a size of 128, 192 or 256 bits (16, 24, or 32 bytes)");
+                    log::error!(
+                        "Key file must have a size of 128, 192 or 256 bits (16, 24, or 32 bytes)"
+                    );
                     process::exit(1);
                 }
             };
 
-            output.write_all(&output_bytes).unwrap();
+            output.write_all(&output_bytes).unwrap_or_else(|err| {
+                log::error!("{err}");
+                process::exit(1);
+            });
         }
     }
 }
@@ -296,9 +334,7 @@ fn read_key(path: PathBuf) -> io::Result<Vec<u8>> {
     match meta.len() {
         16 | 24 | 32 => (),
         _ => {
-            eprintln!(
-                "Error: The key must have a size of 128, 192 or 256 bits (16, 24 or 32 bytes)"
-            );
+            log::error!("The key must have a size of 128, 192 or 256 bits (16, 24 or 32 bytes)");
             process::exit(1);
         }
     }
@@ -314,7 +350,7 @@ fn read_iv(path: PathBuf) -> io::Result<[u8; 16]> {
     let meta = f.metadata()?;
 
     if meta.len() != 16 {
-        eprintln!("Error: The IV must have a size of 128 bits (16 bytes)");
+        log::error!("The IV must have a size of 128 bits (16 bytes)");
         process::exit(1);
     }
 
